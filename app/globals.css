@@ -152,6 +152,12 @@ button { font: inherit; }
   border-radius: 7px;
   overflow: hidden;
 }
+.chart-card, .orderbook-card {
+  border-color: var(--line-soft);
+  border-radius: 9px;
+  background: var(--header-card);
+  box-shadow: var(--header-card-shadow);
+}
 
 /* Exhibition-scale market header */
 .market-summary-header {
@@ -173,8 +179,8 @@ button { font: inherit; }
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 4px 0 15px;
+  gap: 10px;
+  padding: 0 12px 0 8px;
 }
 .identity img { width: 68px; height: 68px; flex: none; object-fit: contain; }
 .identity-trigger {
@@ -201,19 +207,22 @@ button { font: inherit; }
 }
 .headline-price > span { color: var(--muted); font-size: 13.5px; line-height: 1.4; font-weight: 650; }
 .metric-item span { color: var(--muted); font-size: 12.5px; line-height: 1.35; font-weight: 650; }
-.headline-price > span small { color: var(--muted-2); font-size: 11px; }
 .headline-price .price-number {
   direction: ltr;
   text-align: right;
   display: inline-block;
   width: fit-content;
-  font-size: 36px;
-  line-height: 40px;
+  font-size: 34px;
+  line-height: 38px;
   font-weight: 800;
   letter-spacing: -.15px;
   font-variant-numeric: tabular-nums;
   transition: color 200ms ease;
 }
+.header-value { min-width: 0; display: flex; align-items: baseline; gap: 5px; direction: rtl; white-space: nowrap; }
+.header-value small { flex: none; color: var(--muted-2); font-size: 10px; line-height: 1; font-weight: 600; }
+.headline-value { gap: 7px; }
+.headline-value small { font-size: 11px; }
 .health-copy.live { color: var(--green); }
 .health-copy.stale, .health-copy.session-required { color: var(--red); }
 .metric-group {
@@ -329,7 +338,7 @@ button { font: inherit; }
 }
 .paired-head {
   height: 31px;
-  grid-template-columns: .92fr 1.08fr 1.08fr .92fr;
+  grid-template-columns: .92fr 1.08fr 6px 1.08fr .92fr;
   direction: ltr;
   color: var(--muted);
   font-size: 10px;
@@ -337,7 +346,7 @@ button { font: inherit; }
   border-bottom: 1px solid var(--line-soft);
 }
 .orderbook-card.wide .paired-head,
-.orderbook-card.wide .book-paired-row { grid-template-columns: .82fr 1.22fr 1.18fr 1.18fr 1.22fr .82fr; }
+.orderbook-card.wide .book-paired-row { grid-template-columns: .82fr 1.22fr 1.18fr 6px 1.18fr 1.22fr .82fr; }
 .orderbook-card.wide .paired-head { font-size: 10px; }
 .orderbook-card.wide .book-paired-row { font-size: 11.5px; }
 .orderbook-card.wide .book-paired-row .paired-price { font-size: 14px; }
@@ -355,7 +364,7 @@ button { font: inherit; }
   isolation: isolate;
   min-height: 0;
   display: grid;
-  grid-template-columns: .92fr 1.08fr 1.08fr .92fr;
+  grid-template-columns: .92fr 1.08fr 6px 1.08fr .92fr;
   align-items: center;
   padding: 0 9px;
   direction: ltr;
@@ -371,6 +380,8 @@ button { font: inherit; }
   white-space: nowrap;
   text-align: center;
 }
+.price-column-gap { align-self: stretch; z-index: 2 !important; background: var(--order-bg); }
+.paired-head .price-column-gap { background: var(--toolbar-bg); }
 .book-paired-row .paired-price { font-size: 14.6px; font-weight: 750; }
 .book-paired-row .sell-price { color: var(--red); }
 .book-paired-row .buy-price { color: var(--green); }

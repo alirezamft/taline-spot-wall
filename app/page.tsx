@@ -249,6 +249,7 @@ function PairedOrderRows({ bids, asks, replaySequence, motionMode, motionSpeed, 
           {wide && <BookValue value={ask.price * ask.amount} className="paired-total sell-total" format={toman} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={contentDelay} duration={profile.depthDuration} />}
           <BookValue value={ask.price} className="paired-price sell-price" format={toman} motion={activeNumberMotion} direction="sell" trigger={replaySequence} delay={contentDelay} duration={profile.depthDuration} />
         </> : Array.from({ length: wide ? 3 : 2 }, (_, emptyIndex) => <span key={`sell-empty-${emptyIndex}`} />)}
+        <span className="price-column-gap" aria-hidden="true" />
         {bid ? <>
           <BookValue value={bid.price} className="paired-price buy-price" format={toman} motion={activeNumberMotion} direction="buy" trigger={replaySequence} delay={contentDelay} duration={profile.depthDuration} />
           {wide && <BookValue value={bid.price * bid.amount} className="paired-total buy-total" format={toman} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={contentDelay} duration={profile.depthDuration} />}
@@ -300,7 +301,7 @@ function OrderBook({ snapshot, motionMode, motionSpeed, numberMotion, priceFlash
         <div className={`book-last ${snapshot.lastMove}`}><span>آخرین معامله</span><strong>{toman(snapshot.lastPrice)}</strong></div>
       </div>
       <div className="book-head paired-head">
-        <span>مقدار فروش</span>{wide && <span>کل فروش</span>}<span className="sell-price">قیمت فروش</span><span className="buy-price">قیمت خرید</span>{wide && <span>کل خرید</span>}<span>مقدار خرید</span>
+        <span>مقدار فروش</span>{wide && <span>کل فروش</span>}<span className="sell-price">قیمت فروش</span><span className="price-column-gap" aria-hidden="true" /><span className="buy-price">قیمت خرید</span>{wide && <span>کل خرید</span>}<span>مقدار خرید</span>
       </div>
       {snapshot.bids.length === 0 && snapshot.asks.length === 0
         ? <div className="book-empty">{snapshot.health === "session-required" ? "برای دریافت بازار، اتصال را از لوگوی طلاین تنظیم کنید" : "در حال دریافت دفتر سفارش‌ها…"}</div>
@@ -512,16 +513,16 @@ function Header({ snapshot, onOpenSession }: { snapshot: MarketSnapshot; onOpenS
         <div><strong>طلاین</strong><small dir="ltr">GOLD18 / IRT</small><small className={`health-copy ${snapshot.health}`}>{healthText(snapshot.health)}</small></div>
       </section>
       <section className="headline-price">
-        <span>قیمت آخرین معامله در بازار پیشرفته <small>تومان</small></span>
-        <strong className={`price-number ${priceTone}`}>{toman(snapshot.lastPrice)}</strong>
+        <span>قیمت آخرین معامله در بازار پیشرفته</span>
+        <div className={`header-value headline-value ${priceTone}`}><strong className="price-number">{toman(snapshot.lastPrice)}</strong><small>تومان</small></div>
       </section>
       <section className="metric-group" aria-label="بازه قیمت ۲۴ ساعت">
-        <div className="metric-item"><span>بیشترین قیمت ۲۴ ساعت</span><strong>{toman(snapshot.high24h)}</strong></div>
-        <div className="metric-item"><span>کمترین قیمت ۲۴ ساعت</span><strong>{toman(snapshot.low24h)}</strong></div>
+        <div className="metric-item"><span>بیشترین قیمت ۲۴ ساعت</span><div className="header-value"><strong>{toman(snapshot.high24h)}</strong><small>تومان</small></div></div>
+        <div className="metric-item"><span>کمترین قیمت ۲۴ ساعت</span><div className="header-value"><strong>{toman(snapshot.low24h)}</strong><small>تومان</small></div></div>
       </section>
       <section className="metric-group" aria-label="بهترین قیمت‌های بازار">
-        <div className="metric-item"><span>بهترین قیمت فروش</span><strong className="negative">{toman(snapshot.bestAsk)}</strong></div>
-        <div className="metric-item"><span>بهترین قیمت خرید</span><strong className="positive">{toman(snapshot.bestBid)}</strong></div>
+        <div className="metric-item"><span>بهترین قیمت فروش</span><div className="header-value negative"><strong>{toman(snapshot.bestAsk)}</strong><small>تومان</small></div></div>
+        <div className="metric-item"><span>بهترین قیمت خرید</span><div className="header-value positive"><strong>{toman(snapshot.bestBid)}</strong><small>تومان</small></div></div>
       </section>
     </header>
   );

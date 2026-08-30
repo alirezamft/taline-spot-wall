@@ -26,6 +26,9 @@ test("keeps the existing Persian videowall and operator session control", async 
   assert.match(page, /قیمت آخرین معامله در بازار پیشرفته/);
   assert.match(page, /GOLD18 \/ IRT/);
   assert.match(page, /تعادل حجم سفارش‌ها/);
+  assert.match(page, /className="header-value/);
+  assert.match(page, /<small>تومان<\/small>/);
+  assert.match(page, /price-column-gap/);
   assert.match(page, /انتخاب بازه کندل/);
   assert.match(page, /identity-trigger/);
   assert.match(page, /\/api\/market-session/);
@@ -108,6 +111,7 @@ test("uses only real order-book and market-stat data", async () => {
   assert.match(css, /scaleX\(var\(--sell-depth\)\)/);
   assert.match(css, /scaleX\(var\(--buy-depth\)\)/);
   assert.match(css, /grid-template-rows: repeat\(var\(--book-row-count, 15\), minmax\(0, 1fr\)\)/);
+  assert.match(css, /grid-template-columns: \.92fr 1\.08fr 6px 1\.08fr \.92fr/);
   assert.match(page, /--book-row-count/);
   assert.doesNotMatch(css, /numberShockUp|numberShockDown/);
 });
