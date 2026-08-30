@@ -1,0 +1,337 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "YekanBakh";
+  src: url("/fonts/YekanBakhFaNum-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "YekanBakh";
+  src: url("/fonts/YekanBakhFaNum-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "YekanBakh";
+  src: url("/fonts/YekanBakhFaNum-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "YekanBakh";
+  src: url("/fonts/YekanBakhFaNum-ExtraBold.woff2") format("woff2");
+  font-weight: 800;
+  font-display: swap;
+}
+
+:root {
+  --black: #000;
+  --surface: #050608;
+  --surface-raised: #080a0d;
+  --line: #1a1e24;
+  --line-soft: #111419;
+  --text: #f4f5f6;
+  --muted: #727984;
+  --muted-2: #4d535c;
+  --green: #20d6a0;
+  --red: #f04461;
+  --gold: #ffd21a;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; min-height: 100%; background: var(--black); color: var(--text); }
+body {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  font-family: "YekanBakh", Tahoma, Arial, sans-serif;
+  font-feature-settings: "ss01";
+  text-rendering: optimizeLegibility;
+}
+button { font: inherit; }
+
+.stage-viewport { position: relative; flex: none; }
+.stage-scaler { position: absolute; inset: 0 auto auto 0; width: 960px; height: 576px; transform-origin: top left; }
+.stage {
+  width: 960px;
+  height: 576px;
+  padding: 10px;
+  display: grid;
+  grid-template-rows: 72px minmax(0, 1fr);
+  gap: 8px;
+  overflow: hidden;
+  background: #000;
+}
+.market-header, .chart-card, .orderbook-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+/* Compact market header */
+.market-header { display: flex; align-items: center; height: 72px; padding: 8px 10px; }
+.identity {
+  width: 174px;
+  height: 52px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 13px;
+  border-left: 1px solid var(--line);
+}
+.identity img { width: 43px; height: 43px; flex: none; object-fit: contain; }
+.identity > div { min-width: 0; display: grid; align-content: center; }
+.identity strong { font-size: 17px; font-weight: 800; line-height: 18px; }
+.identity span { color: #b8bdc5; font-size: 9px; line-height: 13px; white-space: nowrap; }
+.identity small { color: var(--muted-2); font-size: 6.5px; letter-spacing: .8px; white-space: nowrap; }
+.headline-price {
+  width: 172px;
+  height: 52px;
+  flex: none;
+  padding: 0 14px;
+  display: grid;
+  align-content: center;
+  gap: 1px;
+  border-left: 1px solid var(--line);
+}
+.headline-price > span, .metric span { color: var(--muted); font-size: 7.5px; }
+.headline-price > span small { color: var(--muted-2); font-size: 6.5px; }
+.headline-price .price-number {
+  direction: ltr;
+  text-align: right;
+  display: inline-block;
+  width: fit-content;
+  font-size: 18px;
+  line-height: 22px;
+  font-weight: 800;
+  letter-spacing: -.15px;
+  font-variant-numeric: tabular-nums;
+  transform-origin: right center;
+}
+.headline-price .price-number.buy { animation: numberShockUp .46s ease-out; }
+.headline-price .price-number.sell { animation: numberShockDown .46s ease-out; }
+.headline-price > small { font-size: 7px; }
+.metric {
+  min-width: 0;
+  flex: 1;
+  height: 42px;
+  padding: 0 9px;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  border-left: 1px solid var(--line);
+}
+.metric:last-child { border-left: 0; }
+.metric strong {
+  direction: ltr;
+  text-align: right;
+  font-size: 10.5px;
+  line-height: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.positive { color: var(--green) !important; }
+.negative { color: var(--red) !important; }
+
+/* Chart and orderbook share one uninterrupted trading workspace */
+.workspace {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 252px;
+  gap: 8px;
+  direction: ltr;
+}
+.chart-card { min-width: 0; min-height: 0; direction: rtl; }
+.chart-toolbar {
+  height: 46px;
+  padding: 7px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  background: #06080a;
+}
+.chart-title { display: grid; gap: 1px; }
+.chart-title b { font-size: 12px; font-weight: 700; }
+.chart-title span { color: var(--muted); font-size: 6.5px; letter-spacing: .7px; }
+.ranges { display: flex; gap: 2px; direction: rtl; }
+.ranges button {
+  min-width: 50px;
+  height: 27px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 7.5px;
+  cursor: pointer;
+  transition: color .2s, background .2s, border-color .2s;
+}
+.ranges button:hover { color: var(--text); }
+.ranges button.active { color: #fff; background: #15191f; border-color: #272d35; }
+.chart-canvas { height: calc(100% - 46px); position: relative; background: #030405; }
+.chart-canvas canvas { position: relative; z-index: 1; display: block; width: 100%; height: 100%; }
+.chart-watermark {
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 48%;
+  transform: translate(-50%, -50%);
+  color: rgba(255,255,255,.025);
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Stable 15 + 15 level orderbook */
+.orderbook-card { min-height: 0; direction: rtl; background: #030405; }
+.book-heading {
+  height: 46px;
+  padding: 7px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  background: #06080a;
+}
+.book-heading > div:first-child { display: grid; gap: 1px; }
+.book-heading b { font-size: 13px; font-weight: 800; }
+.book-heading > div:first-child span { color: var(--muted); font-size: 7px; }
+.book-balance { display: flex; gap: 7px; font-size: 7px; }
+.buy-share { color: var(--green); }
+.sell-share { color: var(--red); }
+.book-head {
+  display: grid;
+  align-items: center;
+  padding: 0 9px;
+}
+.paired-head {
+  height: 25px;
+  grid-template-columns: .92fr 1.08fr 1.08fr .92fr;
+  direction: ltr;
+  color: var(--muted);
+  font-size: 7.8px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--line-soft);
+}
+.paired-head span { text-align: center; white-space: nowrap; }
+.paired-head .sell-price { color: #fb5b73; }
+.paired-head .buy-price { color: #42d8aa; }
+.book-paired-row {
+  position: relative;
+  isolation: isolate;
+  height: 23px;
+  display: grid;
+  grid-template-columns: .92fr 1.08fr 1.08fr .92fr;
+  align-items: center;
+  padding: 0 9px;
+  direction: ltr;
+  overflow: hidden;
+  color: #c5cad1;
+  font-size: 9.7px;
+  font-variant-numeric: tabular-nums;
+}
+.book-paired-row span {
+  position: relative;
+  z-index: 1;
+  line-height: 23px;
+  white-space: nowrap;
+  text-align: center;
+}
+.book-paired-row .paired-price { font-size: 11.4px; font-weight: 700; }
+.book-paired-row .sell-price { color: #ff5a72; }
+.book-paired-row .buy-price { color: #35dda9; }
+.book-paired-row .paired-amount { color: #d5d9df; font-weight: 600; }
+.book-paired-row .paired-depth {
+  position: absolute;
+  z-index: 0;
+  inset-block: 0;
+  width: 50%;
+  height: 100%;
+  pointer-events: none;
+  will-change: transform;
+  transition: transform 720ms cubic-bezier(.2,.72,.22,1), opacity 300ms ease;
+}
+.book-paired-row .sell-depth {
+  right: 50%;
+  transform: scaleX(var(--sell-depth));
+  transform-origin: right center;
+  background: linear-gradient(90deg, rgba(240,68,97,.30), rgba(240,68,97,.56));
+}
+.book-paired-row .buy-depth {
+  left: 50%;
+  transform: scaleX(var(--buy-depth));
+  transform-origin: left center;
+  background: linear-gradient(90deg, rgba(32,214,160,.54), rgba(32,214,160,.26));
+}
+.book-paired-row.revision-0 .paired-depth { animation: depthChangeA .72s ease-out; }
+.book-paired-row.revision-1 .paired-depth { animation: depthChangeB .72s ease-out; }
+.book-paired-row.revision-0 .paired-amount,
+.book-paired-row.revision-1 .paired-amount { animation: quantityChanged .46s ease-out; }
+.book-paired-row.revision-0 .paired-price,
+.book-paired-row.revision-1 .paired-price { animation: priceLevelChanged .46s ease-out; }
+.book-paired-row.row-reprice { animation: rowReposition .56s cubic-bezier(.2,.72,.22,1); }
+.book-center {
+  height: 46px;
+  margin: 0;
+  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-block: 1px solid var(--line);
+  background: #080b0e;
+}
+.book-center > div { display: grid; gap: 0; }
+.book-center > div:last-child { text-align: left; }
+.book-center b {
+  direction: ltr;
+  display: inline-block;
+  width: fit-content;
+  font-size: 14px;
+  line-height: 17px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  transform-origin: right center;
+}
+.book-center.buy b { color: var(--green); animation: numberShockUp .46s ease-out; }
+.book-center.sell b { color: var(--red); animation: numberShockDown .46s ease-out; }
+.book-center strong { color: #bcc1c8; direction: ltr; font-size: 8.5px; font-weight: 600; }
+.book-center span { color: var(--muted); font-size: 6px; }
+
+@keyframes numberShockUp {
+  0% { color: #fff; transform: translateY(1px) scale(1.08); text-shadow: 0 0 9px rgba(32,214,160,.8); }
+  100% { transform: none; text-shadow: none; }
+}
+@keyframes numberShockDown {
+  0% { color: #fff; transform: translateY(-1px) scale(1.08); text-shadow: 0 0 9px rgba(240,68,97,.8); }
+  100% { transform: none; text-shadow: none; }
+}
+@keyframes depthChangeA { 0% { filter: brightness(1.35); } 100% { filter: none; } }
+@keyframes depthChangeB { 0% { filter: brightness(1.35); } 100% { filter: none; } }
+@keyframes quantityChanged {
+  0% { opacity: .55; }
+  100% { opacity: 1; }
+}
+@keyframes priceLevelChanged {
+  0% { opacity: .6; transform: translateY(1px); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes rowReposition {
+  0% { opacity: .32; transform: translateY(4px); }
+  100% { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
