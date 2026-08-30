@@ -1,20 +1,50 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { BitycleChart } from "./bitycle-chart";
 import { TlynMarketDataProvider, type MarketHealth, type MarketSnapshot, type OrderLevel } from "./market-data";
 
 type ChartTimeframe = "15m" | "1h" | "1d";
 type SessionDialogState = "idle" | "testing" | "verified" | "saving" | "saved" | "error";
+type OrderbookMotionMode = "row-flash" | "depth-replay" | "depth-random";
 
 const faInteger = new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 0 });
 const faAmount = new Intl.NumberFormat("fa-IR", { minimumFractionDigits: 2, maximumFractionDigits: 3 });
 const timeframeLabels: Record<ChartTimeframe, string> = { "15m": "۱۵ دقیقه", "1h": "۱ ساعت", "1d": "۱ روز" };
 const bitycleIntervals: Record<ChartTimeframe, "15" | "60" | "D"> = { "15m": "15", "1h": "60", "1d": "D" };
+const MOTION_STORAGE_KEY = "tlyn-orderbook-motion";
+const MOTION_EVENT = "tlyn-orderbook-motion-changed";
 
 const toman = (value: number | null) => value === null ? "—" : faInteger.format(value / 10);
 const amount = (value: number) => faAmount.format(value);
+
+function readMotionMode(): OrderbookMotionMode {
+  const saved = window.localStorage.getItem(MOTION_STORAGE_KEY);
+  return saved === "depth-replay" || saved === "depth-random" ? saved : "row-flash";
+}
+
+function nextRandomPulse(rowCount: number, previousRow: number) {
+  const entropy = new Uint32Array(2);
+  window.crypto.getRandomValues(entropy);
+  const candidate = rowCount > 1 && entropy[0] % rowCount === previousRow
+    ? (previousRow + 1 + (entropy[0] % (rowCount - 1))) % rowCount
+    : entropy[0] % Math.max(1, rowCount);
+  return { row: candidate, wait: 900 + (entropy[1] % 1_301) };
+}
+
+function subscribeMotionMode(listener: () => void) {
+  window.addEventListener("storage", listener);
+  window.addEventListener(MOTION_EVENT, listener);
+  return () => {
+    window.removeEventListener("storage", listener);
+    window.removeEventListener(MOTION_EVENT, listener);
+  };
+}
+
+function useMotionMode() {
+  return useSyncExternalStore<OrderbookMotionMode>(subscribeMotionMode, readMotionMode, () => "row-flash");
+}
 
 function useMarketData() {
   const [provider] = useState(() => new TlynMarketDataProvider());
@@ -41,14 +71,10 @@ function healthText(health: MarketHealth) {
   return "آخرین داده دریافتی";
 }
 
-function MarketChart({ timeframe, onTimeframeChange }: { timeframe: ChartTimeframe; onTimeframeChange: (value: ChartTimeframe) => void }) {
+function MarketChart({ timeframe, lastPrice, onTimeframeChange }: { timeframe: ChartTimeframe; lastPrice: number | null; onTimeframeChange: (value: ChartTimeframe) => void }) {
   return (
     <section className="chart-card" aria-label="نمودار واقعی بازار طلا">
       <div className="chart-toolbar">
-        <div className="chart-title">
-          <b>نمودار طلای ۱۸ عیار</b>
-          <span dir="ltr">GOLD18IRT · BITYCLE</span>
-        </div>
         <div className="ranges" aria-label="انتخاب بازه کندل">
           {(["1d", "1h", "15m"] as ChartTimeframe[]).map((value) => (
             <button type="button" className={timeframe === value ? "active" : ""} onClick={() => onTimeframeChange(value)} key={value}>
@@ -58,13 +84,13 @@ function MarketChart({ timeframe, onTimeframeChange }: { timeframe: ChartTimefra
         </div>
       </div>
       <div className="chart-canvas">
-        <BitycleChart key={timeframe} interval={bitycleIntervals[timeframe]} />
+        <BitycleChart key={timeframe} interval={bitycleIntervals[timeframe]} lastPrice={lastPrice === null ? null : lastPrice / 10} />
       </div>
     </section>
   );
 }
 
-function PairedOrderRows({ bids, asks, refreshSequence }: { bids: OrderLevel[]; asks: OrderLevel[]; refreshSequence: number }) {
+function PairedOrderRows({ bids, asks, refreshSequence, replaySequence, randomRow, motionMode }: { bids: OrderLevel[]; asks: OrderLevel[]; refreshSequence: number; replaySequence: number; randomRow: number; motionMode: OrderbookMotionMode }) {
   const bidMax = bids.length ? Math.max(...bids.map((row) => row.amount)) : 0;
   const askMax = asks.length ? Math.max(...asks.map((row) => row.amount)) : 0;
   const rowCount = Math.max(bids.length, asks.length);
@@ -75,15 +101,23 @@ function PairedOrderRows({ bids, asks, refreshSequence }: { bids: OrderLevel[]; 
     const sellDepth = ask && askMax > 0 ? ask.amount / askMax : 0;
     const buyDepth = bid && bidMax > 0 ? bid.amount / bidMax : 0;
     const rowMotion = ask?.motion === "reprice" || bid?.motion === "reprice" ? "row-reprice" : "row-volume";
+    const animationDelay = motionMode === "row-flash"
+      ? index * 200
+      : motionMode === "depth-random" ? 0 : index * 280;
     const depthStyle = {
       "--sell-depth": String(sellDepth),
       "--buy-depth": String(buyDepth),
-      "--refresh-delay": `${index * 200}ms`,
+      "--refresh-delay": `${animationDelay}ms`,
     } as CSSProperties;
     const revision = Math.max(ask?.revision ?? 0, bid?.revision ?? 0);
+    const refreshClass = motionMode === "row-flash"
+      ? `row-flash-mode refresh-${refreshSequence % 2}`
+      : motionMode === "depth-random"
+        ? index === randomRow ? `depth-replay-mode replay-${replaySequence % 2}` : ""
+        : `depth-replay-mode replay-${replaySequence % 2}`;
     return (
       <div
-        className={`book-paired-row ${rowMotion} revision-${revision % 2} refresh-${refreshSequence % 2}`}
+        className={`book-paired-row ${rowMotion} revision-${revision % 2} ${refreshClass}`}
         key={`${ask?.price ?? "sell-empty"}:${bid?.price ?? "buy-empty"}`}
         style={depthStyle}
         {...(bid ? { "data-bid-price": bid.price, "data-bid-amount": bid.amount } : {})}
@@ -99,7 +133,28 @@ function PairedOrderRows({ bids, asks, refreshSequence }: { bids: OrderLevel[]; 
   });
 }
 
-function OrderBook({ snapshot }: { snapshot: MarketSnapshot }) {
+function OrderBook({ snapshot, motionMode }: { snapshot: MarketSnapshot; motionMode: OrderbookMotionMode }) {
+  const [replaySequence, setReplaySequence] = useState(0);
+  const [randomRow, setRandomRow] = useState(-1);
+  const previousRandomRow = useRef(-1);
+  const rowCount = Math.max(snapshot.bids.length, snapshot.asks.length);
+  useEffect(() => {
+    if (motionMode === "row-flash" || rowCount === 0) return;
+    if (motionMode === "depth-replay") {
+      const timer = window.setInterval(() => setReplaySequence((value) => value + 1), 7_500);
+      return () => window.clearInterval(timer);
+    }
+    let timer: number;
+    const pulseOneRow = () => {
+      const pulse = nextRandomPulse(rowCount, previousRandomRow.current);
+      previousRandomRow.current = pulse.row;
+      setRandomRow(pulse.row);
+      setReplaySequence((value) => value + 1);
+      timer = window.setTimeout(pulseOneRow, pulse.wait);
+    };
+    timer = window.setTimeout(pulseOneRow, 650);
+    return () => window.clearTimeout(timer);
+  }, [motionMode, rowCount]);
   const bidVolume = snapshot.bids.reduce((sum, level) => sum + level.amount, 0);
   const askVolume = snapshot.asks.reduce((sum, level) => sum + level.amount, 0);
   const totalVolume = bidVolume + askVolume;
@@ -130,12 +185,12 @@ function OrderBook({ snapshot }: { snapshot: MarketSnapshot }) {
       </div>
       {snapshot.bids.length === 0 && snapshot.asks.length === 0
         ? <div className="book-empty">{snapshot.health === "session-required" ? "برای دریافت بازار، اتصال را از لوگوی طلاین تنظیم کنید" : "در حال دریافت دفتر سفارش‌ها…"}</div>
-        : <PairedOrderRows bids={snapshot.bids} asks={snapshot.asks} refreshSequence={snapshot.refreshSequence} />}
+        : <PairedOrderRows bids={snapshot.bids} asks={snapshot.asks} refreshSequence={snapshot.refreshSequence} replaySequence={replaySequence} randomRow={randomRow} motionMode={motionMode} />}
     </aside>
   );
 }
 
-function SessionDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+function SessionDialog({ open, motionMode, onMotionModeChange, onClose }: { open: boolean; motionMode: OrderbookMotionMode; onMotionModeChange: (mode: OrderbookMotionMode) => void; onClose: () => void }) {
   const [cookie, setCookie] = useState("");
   const [verifiedCookie, setVerifiedCookie] = useState("");
   const [state, setState] = useState<SessionDialogState>("idle");
@@ -223,6 +278,21 @@ function SessionDialog({ open, onClose }: { open: boolean; onClose: () => void }
           spellCheck={false}
           maxLength={12_000}
         />
+        <fieldset className="motion-settings">
+          <legend>نمایش به‌روزرسانی اوردربوک</legend>
+          <label htmlFor="motion-row-flash" aria-label="فلش ردیف">
+            <input id="motion-row-flash" type="radio" name="motion-mode" checked={motionMode === "row-flash"} onChange={() => onMotionModeChange("row-flash")} />
+            <span><b>فلش ردیف</b><small>روشن‌شدن ملایم کل ردیف‌ها به‌ترتیب</small></span>
+          </label>
+          <label htmlFor="motion-depth-replay" aria-label="بازشدن عمق">
+            <input id="motion-depth-replay" type="radio" name="motion-mode" checked={motionMode === "depth-replay"} onChange={() => onMotionModeChange("depth-replay")} />
+            <span><b>بازشدن عمق</b><small>بازشدن دوباره نوار عمق و فلش سفید قیمت</small></span>
+          </label>
+          <label htmlFor="motion-depth-random" aria-label="بازشدن تصادفی عمق">
+            <input id="motion-depth-random" type="radio" name="motion-mode" checked={motionMode === "depth-random"} onChange={() => onMotionModeChange("depth-random")} />
+            <span><b>عمق تصادفی</b><small>به‌روزرسانی پیوستهٔ یک ردیف با فاصلهٔ متغیر</small></span>
+          </label>
+        </fieldset>
         <p className={`session-message ${state}`}>{message || "ابتدا اتصال را تست کنید؛ سپس ذخیره فعال می‌شود."}</p>
         <div className="session-actions">
           <button type="button" className="secondary" onClick={close}>انصراف</button>
@@ -253,7 +323,7 @@ function Header({ snapshot, onOpenSession }: { snapshot: MarketSnapshot; onOpenS
         <button className="identity-trigger" type="button" onClick={onOpenSession} aria-label="تنظیم اتصال داده">
           <Image src="/taline-logo.png" alt="لوگوی طلاین" width={43} height={43} priority />
         </button>
-        <div><strong>طلاین</strong><span className={`market-health ${snapshot.health}`}>{healthText(snapshot.health)}</span><small dir="ltr">GOLD18IRT · SPOT</small></div>
+        <div><strong>طلاین</strong><small dir="ltr">GOLD18IRT · SPOT</small></div>
       </section>
       <section className="headline-price">
         <span>آخرین قیمت <small>تومان</small></span>
@@ -274,15 +344,20 @@ function MarketWall() {
   const snapshot = useMarketData();
   const [timeframe, setTimeframe] = useState<ChartTimeframe>("1h");
   const [sessionOpen, setSessionOpen] = useState(false);
+  const motionMode = useMotionMode();
+  const updateMotionMode = (mode: OrderbookMotionMode) => {
+    window.localStorage.setItem(MOTION_STORAGE_KEY, mode);
+    window.dispatchEvent(new Event(MOTION_EVENT));
+  };
   const selectedTimeframe = Object.hasOwn(bitycleIntervals, timeframe) ? timeframe : "1h";
   return (
     <main className="stage" dir="rtl">
       <Header snapshot={snapshot} onOpenSession={() => setSessionOpen(true)} />
       <section className="workspace">
-        <MarketChart timeframe={selectedTimeframe} onTimeframeChange={setTimeframe} />
-        <OrderBook snapshot={snapshot} />
+        <MarketChart timeframe={selectedTimeframe} lastPrice={snapshot.lastPrice} onTimeframeChange={setTimeframe} />
+        <OrderBook snapshot={snapshot} motionMode={motionMode} />
       </section>
-      <SessionDialog open={sessionOpen} onClose={() => setSessionOpen(false)} />
+      <SessionDialog open={sessionOpen} motionMode={motionMode} onMotionModeChange={updateMotionMode} onClose={() => setSessionOpen(false)} />
     </main>
   );
 }

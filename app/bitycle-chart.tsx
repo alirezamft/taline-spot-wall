@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { clampCandleWicks, rialToToman, withLiveClose, type CandleShape } from "./candle-cleaner";
 
 type ResolutionMap = Record<string, number>;
-type Bar = { time: number; open: number; high: number; low: number; close: number; volume?: number };
+type Bar = CandleShape;
 type Widget = {
   subscribe: (channel: string, handler: (payload: unknown) => unknown) => unknown;
   pushExternalData: (type: string, payload: unknown) => void;
+  setConfig?: (patch: Record<string, unknown>) => void;
 };
+type Subscription = { resolution: string; ticker: string; realBar?: Bar };
+type DatafeedController = { cleanup: () => void; pushLastPrice: (price: number | null) => void };
 
 declare global {
   interface Window {
@@ -29,6 +33,42 @@ const DEFAULT_RESOLUTION_SECONDS: ResolutionMap = {
   D: 24 * 60 * 60,
   W: 7 * 24 * 60 * 60,
   M: 30 * 24 * 60 * 60,
+};
+const CHART_OVERRIDES = {
+  "paneProperties.background": "#000000",
+  "paneProperties.backgroundType": "solid",
+  "paneProperties.vertGridProperties.color": "#111419",
+  "paneProperties.horzGridProperties.color": "#111419",
+  "scalesProperties.backgroundColor": "#000000",
+  "scalesProperties.lineColor": "#1a1e24",
+  "scalesProperties.textColor": "#727984",
+  "mainSeriesProperties.showCountdown": true,
+  "mainSeriesProperties.candleStyle.upColor": "#20d6a0",
+  "mainSeriesProperties.candleStyle.downColor": "#f04461",
+  "mainSeriesProperties.candleStyle.borderUpColor": "#20d6a0",
+  "mainSeriesProperties.candleStyle.borderDownColor": "#f04461",
+  "mainSeriesProperties.candleStyle.wickUpColor": "#20d6a0",
+  "mainSeriesProperties.candleStyle.wickDownColor": "#f04461",
+  "mainSeriesProperties.candleStyle.drawWick": true,
+  "mainSeriesProperties.candleStyle.drawBorder": true,
+};
+const CHART_PALETTE = {
+  dark: {
+    primary: "#20d6a0",
+    secondary: "#f04461",
+    success: "#20d6a0",
+    error: "#f04461",
+    text: "#727984",
+    background: "#000000",
+  },
+  light: {
+    primary: "#20d6a0",
+    secondary: "#f04461",
+    success: "#20d6a0",
+    error: "#f04461",
+    text: "#727984",
+    background: "#000000",
+  },
 };
 
 function normalizeResolution(value: unknown) {
@@ -77,6 +117,18 @@ function fromChartTime(epochSeconds: number, resolution: string) {
     : epochSeconds;
 }
 
+function isOpenCandle(bar: Bar, resolution: string, resolutionSeconds: ResolutionMap) {
+  const start = fromChartTime(Math.floor(bar.time / 1_000), resolution);
+  const duration = resolutionSeconds[normalizeResolution(resolution)] ?? 60;
+  return Date.now() / 1_000 < start + duration;
+}
+
+function liveBar(bar: Bar, price: number | null, resolution: string, resolutionSeconds: ResolutionMap) {
+  return price !== null && Number.isFinite(price) && price > 0 && isOpenCandle(bar, resolution, resolutionSeconds)
+    ? withLiveClose(bar, price)
+    : bar;
+}
+
 function validColumnarPayload(payload: unknown) {
   if (!payload || typeof payload !== "object") return false;
   const data = payload as Record<string, unknown>;
@@ -110,12 +162,12 @@ async function fetchBars(fromSeconds: number, toSeconds: number, resolution: str
   const lows = data.l as number[];
   const closes = data.c as number[];
   const volumes = Array.isArray(data.v) ? data.v as number[] : null;
-  const bars = times.map((time, index) => ({
+  const bars = times.map((time, index) => clampCandleWicks({
     time: toChartTime(Number(time), normalized) * 1_000,
-    open: Number(opens[index]),
-    high: Number(highs[index]),
-    low: Number(lows[index]),
-    close: Number(closes[index]),
+    open: rialToToman(Number(opens[index])),
+    high: rialToToman(Number(highs[index])),
+    low: rialToToman(Number(lows[index])),
+    close: rialToToman(Number(closes[index])),
     ...(volumes && Number.isFinite(Number(volumes[index])) ? { volume: Number(volumes[index]) } : {}),
   }));
   if (bars.some((bar) => ![bar.time, bar.open, bar.high, bar.low, bar.close].every(Number.isFinite))) {
@@ -124,11 +176,12 @@ async function fetchBars(fromSeconds: number, toSeconds: number, resolution: str
   return { bars, meta: { noData: bars.length === 0 } };
 }
 
-function installExternalDatafeed(widget: Widget, resolutionSeconds: ResolutionMap, supportedResolutions: string[]) {
+function installExternalDatafeed(widget: Widget, resolutionSeconds: ResolutionMap, supportedResolutions: string[], initialLastPrice: number | null): DatafeedController {
   const barTimers = new Map<string, ReturnType<typeof setInterval>>();
   const quoteTimers = new Map<string, ReturnType<typeof setInterval>>();
-  const lastBarBySubscriber = new Map<string, Bar>();
+  const subscriptions = new Map<string, Subscription>();
   const lastBarByKey = new Map<string, Bar>();
+  let lastPrice = initialLastPrice;
   const keyFor = (ticker: string, resolution: string) => `${ticker}|${normalizeResolution(resolution)}`;
   const bucketSeconds = (resolution: string) => resolutionSeconds[normalizeResolution(resolution)] ?? 60;
 
@@ -155,7 +208,7 @@ function installExternalDatafeed(widget: Widget, resolutionSeconds: ResolutionMa
         return { requestId, result: {
           name,
           ticker: name,
-          description: "گرم طلای ۱۸ عیار / ریال",
+          description: "گرم طلای ۱۸ عیار / تومان",
           type: "commodity",
           session: "24x7",
           timezone: CHART_TIMEZONE,
@@ -163,7 +216,7 @@ function installExternalDatafeed(widget: Widget, resolutionSeconds: ResolutionMa
           minmov: 1,
           pricescale: 1,
           has_intraday: true,
-          has_no_volume: true,
+          visible_plots_set: "ohlc",
           has_weekly_and_monthly: true,
           supported_resolutions: supportedResolutions,
           data_status: "streaming",
@@ -184,7 +237,15 @@ function installExternalDatafeed(widget: Widget, resolutionSeconds: ResolutionMa
         ).then((result) => {
           const latest = result.bars.at(-1);
           if (latest) lastBarByKey.set(keyFor(ticker, resolution), latest);
-          return { requestId, result };
+          return {
+            requestId,
+            result: {
+              ...result,
+              bars: result.bars.map((bar, index) => index === result.bars.length - 1
+                ? liveBar(bar, lastPrice, resolution, resolutionSeconds)
+                : bar),
+            },
+          };
         }).catch((error) => ({ requestId, error: error instanceof Error ? error.message : "candle request failed" }));
       }
       case "getQuotes": {
@@ -193,7 +254,7 @@ function installExternalDatafeed(widget: Widget, resolutionSeconds: ResolutionMa
         return {
           requestId,
           result: symbols.map((name) => latest
-            ? { n: name, s: "ok", v: { lp: latest.close } }
+            ? { n: name, s: "ok", v: { lp: lastPrice ?? latest.close } }
             : { n: name, s: "no_data", v: {} }),
         };
       }
@@ -201,6 +262,7 @@ function installExternalDatafeed(widget: Widget, resolutionSeconds: ResolutionMa
         const subscriberUID = String(body.subscriberUID);
         const resolution = normalizeResolution(body.resolution ?? "D");
         const ticker = String((body.symbolInfo as { ticker?: unknown } | undefined)?.ticker ?? "GOLD18IRT");
+        subscriptions.set(subscriberUID, { resolution, ticker });
         const existing = barTimers.get(subscriberUID);
         if (existing) clearInterval(existing);
         const pollLatest = async () => {
@@ -208,11 +270,12 @@ function installExternalDatafeed(widget: Widget, resolutionSeconds: ResolutionMa
           try {
             const result = await fetchBars(now - bucketSeconds(resolution) * 2, now, resolution);
             const latest = result.bars.at(-1);
-            const previous = lastBarBySubscriber.get(subscriberUID);
-            if (!latest || (previous && latest.time < previous.time)) return;
-            lastBarBySubscriber.set(subscriberUID, latest);
+            const subscription = subscriptions.get(subscriberUID);
+            const previous = subscription?.realBar;
+            if (!latest || !subscription || (previous && latest.time < previous.time)) return;
+            subscription.realBar = latest;
             lastBarByKey.set(keyFor(ticker, resolution), latest);
-            widget.pushExternalData("bar", { subscriberUID, bar: latest });
+            widget.pushExternalData("bar", { subscriberUID, bar: liveBar(latest, lastPrice, resolution, resolutionSeconds) });
           } catch {
             // Bitycle keeps the last successful real bar on transient failures.
           }
@@ -227,7 +290,7 @@ function installExternalDatafeed(widget: Widget, resolutionSeconds: ResolutionMa
         const timer = barTimers.get(uid);
         if (timer) clearInterval(timer);
         barTimers.delete(uid);
-        lastBarBySubscriber.delete(uid);
+        subscriptions.delete(uid);
         return { requestId, result: { ok: true } };
       }
       case "subscribeQuotes": {
@@ -236,9 +299,9 @@ function installExternalDatafeed(widget: Widget, resolutionSeconds: ResolutionMa
         const existing = quoteTimers.get(listenerGUID);
         if (existing) clearInterval(existing);
         quoteTimers.set(listenerGUID, setInterval(() => {
-          const latest = [...lastBarBySubscriber.values()].at(-1) ?? [...lastBarByKey.values()].at(-1);
+          const latest = [...subscriptions.values()].map((item) => item.realBar).filter((bar): bar is Bar => Boolean(bar)).at(-1) ?? [...lastBarByKey.values()].at(-1);
           if (!latest) return;
-          widget.pushExternalData("quote", { listenerGUID, quotes: symbols.map((name) => ({ n: name, s: "ok", v: { lp: latest.close } })) });
+          widget.pushExternalData("quote", { listenerGUID, quotes: symbols.map((name) => ({ n: name, s: "ok", v: { lp: lastPrice ?? latest.close } })) });
         }, 5_000));
         return { requestId, result: { ok: true } };
       }
@@ -254,21 +317,41 @@ function installExternalDatafeed(widget: Widget, resolutionSeconds: ResolutionMa
     }
   });
 
-  return () => {
-    barTimers.forEach((timer) => clearInterval(timer));
-    quoteTimers.forEach((timer) => clearInterval(timer));
-    barTimers.clear();
-    quoteTimers.clear();
+  return {
+    pushLastPrice(price) {
+      lastPrice = price;
+      subscriptions.forEach((subscription, subscriberUID) => {
+        if (!subscription.realBar) return;
+        widget.pushExternalData("bar", {
+          subscriberUID,
+          bar: liveBar(subscription.realBar, lastPrice, subscription.resolution, resolutionSeconds),
+        });
+      });
+    },
+    cleanup() {
+      barTimers.forEach((timer) => clearInterval(timer));
+      quoteTimers.forEach((timer) => clearInterval(timer));
+      barTimers.clear();
+      quoteTimers.clear();
+      subscriptions.clear();
+    },
   };
 }
 
-export function BitycleChart({ interval }: { interval: "15" | "60" | "D" }) {
+export function BitycleChart({ interval, lastPrice }: { interval: "15" | "60" | "D"; lastPrice: number | null }) {
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const datafeedRef = useRef<DatafeedController | null>(null);
+  const lastPriceRef = useRef(lastPrice);
+
+  useEffect(() => {
+    lastPriceRef.current = lastPrice;
+    datafeedRef.current?.pushLastPrice(lastPrice);
+  }, [lastPrice]);
 
   useEffect(() => {
     let disposed = false;
     let registrationTimer: ReturnType<typeof setInterval> | null = null;
-    let cleanupDatafeed: (() => void) | null = null;
+    let datafeed: DatafeedController | null = null;
     const container = document.getElementById(WIDGET_ID);
     if (!container) return;
     container.replaceChildren();
@@ -301,13 +384,29 @@ export function BitycleChart({ interval }: { interval: "15" | "60" | "D" }) {
         type: "ac",
         locale: "fa",
         mode: "dark",
+        "color-palette": CHART_PALETTE,
         style: "tradingview",
+        chart_style: "Candle",
         datafeed_type: "external",
         symbol: "GOLD18IRT",
         source_priority: [],
         interval,
-        disabled_features: [],
-        enabled_features: [],
+        disabled_features: [
+          "header_widget",
+          "left_toolbar",
+          "right_toolbar",
+          "control_bar",
+          "timeframes_toolbar",
+          "legend_widget",
+          "context_menus",
+          "show_exchange",
+          "order_panel",
+          "trading_account_manager",
+          "use_localstorage_for_settings",
+          "load_last_chart",
+        ],
+        enabled_features: ["countdown"],
+        overrides: CHART_OVERRIDES,
         calendar_type: "shamsi",
       });
       script.addEventListener("error", () => !disposed && setState("error"), { once: true });
@@ -320,7 +419,9 @@ export function BitycleChart({ interval }: { interval: "15" | "60" | "D" }) {
         if (widget && typeof widget.subscribe === "function") {
           if (registrationTimer) clearInterval(registrationTimer);
           registrationTimer = null;
-          cleanupDatafeed = installExternalDatafeed(widget, resolutionSeconds, supportedResolutions);
+          datafeed = installExternalDatafeed(widget, resolutionSeconds, supportedResolutions, lastPriceRef.current);
+          datafeedRef.current = datafeed;
+          widget.setConfig?.({ mode: "dark", "color-palette": CHART_PALETTE, chart_style: "Candle", overrides: CHART_OVERRIDES });
           setState("ready");
         } else if (attempts >= 100) {
           if (registrationTimer) clearInterval(registrationTimer);
@@ -337,7 +438,8 @@ export function BitycleChart({ interval }: { interval: "15" | "60" | "D" }) {
     return () => {
       disposed = true;
       if (registrationTimer) clearInterval(registrationTimer);
-      cleanupDatafeed?.();
+      datafeed?.cleanup();
+      if (datafeedRef.current === datafeed) datafeedRef.current = null;
       scriptElement?.remove();
       if (window.BitycleWidget?.[WIDGET_ID]) delete window.BitycleWidget[WIDGET_ID];
       container.replaceChildren();

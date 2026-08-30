@@ -17,7 +17,7 @@ test("keeps the existing Persian videowall and operator session control", async 
   assert.match(page, /Math\.min\(window\.innerWidth \/ 960, window\.innerHeight \/ 576\)/);
   assert.match(page, /طلاین/);
   assert.match(page, /دفتر سفارش‌ها/);
-  assert.match(page, /نمودار طلای ۱۸ عیار/);
+  assert.match(page, /انتخاب بازه کندل/);
   assert.match(page, /identity-trigger/);
   assert.match(page, /\/api\/market-session/);
   assert.match(page, /تست اتصال/);
@@ -27,7 +27,7 @@ test("keeps the existing Persian videowall and operator session control", async 
   assert.match(sessionStore, /\.runtime/);
   assert.match(sessionStore, /process\.env\.TLYN_SESSION_COOKIE/);
   assert.match(css, /\.stage\s*\{[^}]*width: 960px;[^}]*height: 576px;/s);
-  assert.match(css, /YekanBakhFaNum-Regular\.woff2/);
+  assert.match(css, /Dana-Regular\.woff2/);
   assert.doesNotMatch(`${page}\n${sessionRoute}\n${sessionStore}`, /analytics_token=|XSRF-TOKEN=|apptlynir_session=ey/);
 });
 
@@ -64,9 +64,15 @@ test("uses only real order-book and market-stat data", async () => {
   assert.match(page, /ask\.amount \/ askMax/);
   assert.match(page, /bid\.amount \/ bidMax/);
   assert.match(page, /key=\{`\$\{ask\?\.price/);
-  assert.match(page, /index \* 200/);
-  assert.match(css, /rowRefreshEven 420ms ease-out var\(--refresh-delay\)/);
+  assert.match(page, /index \* 280/);
+  assert.match(page, /"depth-random"/);
+  assert.match(page, /window\.crypto\.getRandomValues/);
+  assert.match(page, /wait: 900 \+ \(entropy\[1\] % 1_301\)/);
+  assert.match(page, /index === randomRow/);
+  assert.match(css, /rowRefreshEven 520ms ease-out var\(--refresh-delay\)/);
   assert.match(css, /transition: transform 880ms/);
+  assert.match(css, /replaySellA 820ms[^;]*forwards/);
+  assert.match(css, /replayBuyA 820ms[^;]*forwards/);
   assert.match(css, /scaleX\(var\(--sell-depth\)\)/);
   assert.match(css, /scaleX\(var\(--buy-depth\)\)/);
   assert.doesNotMatch(css, /numberShockUp|numberShockDown/);
@@ -84,8 +90,22 @@ test("uses Bitycle with authenticated real candle data", async () => {
   assert.doesNotMatch(page, /<canvas|drawMarketChart/);
   assert.match(chart, /widget\.bitycle\.com\/static\/script\/v1\/script\.js/);
   assert.match(chart, /datafeed_type: "external"/);
+  assert.match(chart, /chart_style: "Candle"/);
+  assert.match(chart, /rialToToman/);
+  assert.match(page, /lastPrice === null \? null : lastPrice \/ 10/);
   assert.match(chart, /symbol: "GOLD18IRT"/);
   assert.match(chart, /calendar_type: "shamsi"/);
+  assert.match(chart, /"header_widget"/);
+  assert.match(chart, /"left_toolbar"/);
+  assert.match(chart, /"timeframes_toolbar"/);
+  assert.match(chart, /"use_localstorage_for_settings"/);
+  assert.match(chart, /mainSeriesProperties\.candleStyle\.upColor/);
+  assert.match(chart, /"color-palette"/);
+  assert.match(chart, /mainSeriesProperties\.showCountdown/);
+  assert.match(chart, /visible_plots_set: "ohlc"/);
+  assert.doesNotMatch(chart, /has_no_volume/);
+  assert.match(chart, /pushExternalData\("bar"/);
+  assert.doesNotMatch(chart, /candle-countdown|useCandleCountdown/);
   assert.match(chart, /Asia\/Tehran/);
   assert.match(chart, /function toChartTime/);
   assert.match(chart, /function fromChartTime/);
@@ -105,7 +125,8 @@ test("uses Bitycle with authenticated real candle data", async () => {
 
 test("keeps required assets and no obsolete starter surface", async () => {
   await access(new URL("../public/taline-logo.png", import.meta.url));
-  await access(new URL("../public/fonts/YekanBakhFaNum-Regular.woff2", import.meta.url));
+  await access(new URL("../public/fonts/Dana-Regular.woff2", import.meta.url));
+  await access(new URL("../Start Spot Wall.command", import.meta.url));
   await assert.rejects(access(new URL("../app/_sites-preview/SkeletonPreview.tsx", import.meta.url)));
   await access(new URL("../.openai/hosting.json", import.meta.url));
 });

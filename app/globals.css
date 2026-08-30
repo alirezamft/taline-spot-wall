@@ -1,27 +1,27 @@
 @import "tailwindcss";
 
 @font-face {
-  font-family: "YekanBakh";
-  src: url("/fonts/YekanBakhFaNum-Regular.woff2") format("woff2");
+  font-family: "Dana";
+  src: url("/fonts/Dana-Regular.woff2") format("woff2");
   font-weight: 400;
   font-display: swap;
 }
 @font-face {
-  font-family: "YekanBakh";
-  src: url("/fonts/YekanBakhFaNum-SemiBold.woff2") format("woff2");
+  font-family: "Dana";
+  src: url("/fonts/Dana-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Dana";
+  src: url("/fonts/Dana-DemiBold.woff2") format("woff2");
   font-weight: 600;
   font-display: swap;
 }
 @font-face {
-  font-family: "YekanBakh";
-  src: url("/fonts/YekanBakhFaNum-Bold.woff2") format("woff2");
-  font-weight: 700;
-  font-display: swap;
-}
-@font-face {
-  font-family: "YekanBakh";
-  src: url("/fonts/YekanBakhFaNum-ExtraBold.woff2") format("woff2");
-  font-weight: 800;
+  font-family: "Dana";
+  src: url("/fonts/Dana-Bold.woff2") format("woff2");
+  font-weight: 700 900;
   font-display: swap;
 }
 
@@ -46,7 +46,7 @@ body {
   display: grid;
   place-items: center;
   overflow: hidden;
-  font-family: "YekanBakh", Tahoma, Arial, sans-serif;
+  font-family: "Dana", Tahoma, Arial, sans-serif;
   font-feature-settings: "ss01";
   text-rendering: optimizeLegibility;
 }
@@ -97,23 +97,7 @@ button { font: inherit; }
 .identity-trigger:focus-visible { outline: 1px solid var(--gold); outline-offset: 3px; }
 .identity > div { min-width: 0; display: grid; align-content: center; }
 .identity strong { font-size: 17px; font-weight: 800; line-height: 18px; }
-.identity span { color: #b8bdc5; font-size: 9px; line-height: 13px; white-space: nowrap; }
 .identity small { color: var(--muted-2); font-size: 6.5px; letter-spacing: .8px; white-space: nowrap; }
-.identity .market-health { position: relative; padding-right: 9px; color: #aeb4bc; }
-.identity .market-health::before {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 50%;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #737a84;
-  transform: translateY(-50%);
-}
-.identity .market-health.live::before { background: var(--green); }
-.identity .market-health.stale::before,
-.identity .market-health.session-required::before { background: var(--red); }
 .headline-price {
   width: 172px;
   height: 52px;
@@ -174,17 +158,14 @@ button { font: inherit; }
 }
 .chart-card { min-width: 0; min-height: 0; direction: rtl; }
 .chart-toolbar {
-  height: 46px;
-  padding: 7px 12px;
+  height: 38px;
+  padding: 5px 10px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   border-bottom: 1px solid var(--line);
   background: #06080a;
 }
-.chart-title { display: grid; gap: 1px; }
-.chart-title b { font-size: 12px; font-weight: 700; }
-.chart-title span { color: var(--muted); font-size: 6.5px; letter-spacing: .7px; }
 .ranges { display: flex; gap: 2px; direction: rtl; }
 .ranges button {
   min-width: 50px;
@@ -200,7 +181,7 @@ button { font: inherit; }
 }
 .ranges button:hover { color: var(--text); }
 .ranges button.active { color: #fff; background: #15191f; border-color: #272d35; }
-.chart-canvas { height: calc(100% - 46px); position: relative; background: #030405; }
+.chart-canvas { height: calc(100% - 38px); position: relative; background: #000; }
 .bitycle-shell, .bitycle-widget { position: relative; width: 100%; height: 100%; }
 .bitycle-widget iframe { display: block; width: 100% !important; height: 100% !important; border: 0; }
 .chart-state {
@@ -210,7 +191,7 @@ button { font: inherit; }
   display: grid;
   place-items: center;
   color: var(--muted);
-  background: #030405;
+  background: #000;
   font-size: 9px;
 }
 .chart-state.error { color: #9b626b; }
@@ -289,11 +270,11 @@ button { font: inherit; }
   z-index: 0;
   inset: 0;
   pointer-events: none;
-  background: rgba(255,255,255,.055);
+  background: rgba(255,255,255,.09);
   opacity: 0;
 }
-.book-paired-row.refresh-0 .row-refresh { animation: rowRefreshEven 420ms ease-out var(--refresh-delay) both; }
-.book-paired-row.refresh-1 .row-refresh { animation: rowRefreshOdd 420ms ease-out var(--refresh-delay) both; }
+.book-paired-row.row-flash-mode.refresh-0 .row-refresh { animation: rowRefreshEven 520ms ease-out var(--refresh-delay) both; }
+.book-paired-row.row-flash-mode.refresh-1 .row-refresh { animation: rowRefreshOdd 520ms ease-out var(--refresh-delay) both; }
 .book-paired-row .sell-depth {
   right: 50%;
   transform: scaleX(var(--sell-depth));
@@ -306,6 +287,14 @@ button { font: inherit; }
   transform-origin: left center;
   background: linear-gradient(90deg, rgba(32,214,160,.25), rgba(32,214,160,.12));
 }
+.book-paired-row.depth-replay-mode.replay-0 .sell-depth { animation: replaySellA 820ms cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
+.book-paired-row.depth-replay-mode.replay-1 .sell-depth { animation: replaySellB 820ms cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
+.book-paired-row.depth-replay-mode.replay-0 .buy-depth { animation: replayBuyA 820ms cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
+.book-paired-row.depth-replay-mode.replay-1 .buy-depth { animation: replayBuyB 820ms cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
+.book-paired-row.depth-replay-mode.replay-0 .sell-price { animation: sellPriceRefreshA 460ms ease-out var(--refresh-delay) forwards; }
+.book-paired-row.depth-replay-mode.replay-1 .sell-price { animation: sellPriceRefreshB 460ms ease-out var(--refresh-delay) forwards; }
+.book-paired-row.depth-replay-mode.replay-0 .buy-price { animation: buyPriceRefreshA 460ms ease-out var(--refresh-delay) forwards; }
+.book-paired-row.depth-replay-mode.replay-1 .buy-price { animation: buyPriceRefreshB 460ms ease-out var(--refresh-delay) forwards; }
 .book-paired-row.revision-0 .paired-depth { animation: depthChangeA .72s ease-out; }
 .book-paired-row.revision-1 .paired-depth { animation: depthChangeB .72s ease-out; }
 .book-paired-row.revision-0 .paired-amount,
@@ -363,6 +352,14 @@ button { font: inherit; }
   0%, 100% { opacity: 0; }
   35% { opacity: 1; }
 }
+@keyframes replaySellA { 0% { transform: scaleX(0); opacity: .2; } 100% { transform: scaleX(var(--sell-depth)); opacity: 1; } }
+@keyframes replaySellB { 0% { transform: scaleX(0); opacity: .2; } 100% { transform: scaleX(var(--sell-depth)); opacity: 1; } }
+@keyframes replayBuyA { 0% { transform: scaleX(0); opacity: .2; } 100% { transform: scaleX(var(--buy-depth)); opacity: 1; } }
+@keyframes replayBuyB { 0% { transform: scaleX(0); opacity: .2; } 100% { transform: scaleX(var(--buy-depth)); opacity: 1; } }
+@keyframes sellPriceRefreshA { 0%, 100% { color: #ff5a72; text-shadow: none; } 36% { color: #ff9bab; text-shadow: 0 0 4px rgba(255,255,255,.18); } }
+@keyframes sellPriceRefreshB { 0%, 100% { color: #ff5a72; text-shadow: none; } 36% { color: #ff9bab; text-shadow: 0 0 4px rgba(255,255,255,.18); } }
+@keyframes buyPriceRefreshA { 0%, 100% { color: #35dda9; text-shadow: none; } 36% { color: #95ebd0; text-shadow: 0 0 4px rgba(255,255,255,.18); } }
+@keyframes buyPriceRefreshB { 0%, 100% { color: #35dda9; text-shadow: none; } 36% { color: #95ebd0; text-shadow: 0 0 4px rgba(255,255,255,.18); } }
 
 .session-backdrop {
   position: absolute;
@@ -409,6 +406,33 @@ button { font: inherit; }
   font: 9px/1.65 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 .session-dialog textarea:focus { border-color: #46505e; }
+.motion-settings {
+  margin: 11px 0 0;
+  padding: 9px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  border: 1px solid #20252c;
+  border-radius: 6px;
+}
+.motion-settings legend { padding: 0 5px; color: #aeb4bd; font-size: 8px; }
+.motion-settings label {
+  min-width: 0;
+  min-height: 48px;
+  margin: 0;
+  padding: 7px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  border: 1px solid #20252c;
+  border-radius: 5px;
+  background: #050608;
+  cursor: pointer;
+}
+.motion-settings input { margin: 2px 0 0; accent-color: var(--green); }
+.motion-settings label > span { display: grid; gap: 2px; }
+.motion-settings b { color: #e5e8ec; font-size: 8px; font-weight: 600; }
+.motion-settings small { color: var(--muted); font-size: 6.5px; line-height: 1.5; }
 .session-message { min-height: 15px; margin: 8px 0 10px; color: var(--muted); font-size: 8px; }
 .session-message.verified, .session-message.saved { color: var(--green); }
 .session-message.error { color: var(--red); }
