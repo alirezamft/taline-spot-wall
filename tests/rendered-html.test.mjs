@@ -14,7 +14,7 @@ test("keeps the existing Persian videowall and operator session control", async 
   ]);
 
   assert.match(layout, /lang="fa" dir="rtl"/);
-  assert.match(page, /Math\.min\(window\.innerWidth \/ 960, window\.innerHeight \/ 576\)/);
+  assert.match(page, /Math\.min\(window\.innerWidth \/ STAGE_WIDTH, window\.innerHeight \/ STAGE_HEIGHT\)/);
   assert.match(page, /طلاین/);
   assert.match(page, /دفتر سفارش‌ها/);
   assert.match(page, /انتخاب بازه کندل/);
@@ -26,7 +26,8 @@ test("keeps the existing Persian videowall and operator session control", async 
   assert.match(sessionRoute, /saveMarketCookie/);
   assert.match(sessionStore, /\.runtime/);
   assert.match(sessionStore, /process\.env\.TLYN_SESSION_COOKIE/);
-  assert.match(css, /\.stage\s*\{[^}]*width: 960px;[^}]*height: 576px;/s);
+  assert.match(css, /\.market-stage\s*\{[^}]*width: 960px;[^}]*height: 576px;/s);
+  assert.match(css, /\.wall-layout\s*\{[^}]*width: 1344px;[^}]*height: 576px;/s);
   assert.match(css, /Dana-Regular\.woff2/);
   assert.doesNotMatch(`${page}\n${sessionRoute}\n${sessionStore}`, /analytics_token=|XSRF-TOKEN=|apptlynir_session=ey/);
 });
@@ -64,15 +65,18 @@ test("uses only real order-book and market-stat data", async () => {
   assert.match(page, /ask\.amount \/ askMax/);
   assert.match(page, /bid\.amount \/ bidMax/);
   assert.match(page, /key=\{`\$\{ask\?\.price/);
-  assert.match(page, /index \* 280/);
+  assert.match(page, /normal: \{ cycle: 7_500, step: 280/);
   assert.match(page, /"depth-random"/);
   assert.match(page, /window\.crypto\.getRandomValues/);
   assert.match(page, /wait: 900 \+ \(entropy\[1\] % 1_301\)/);
   assert.match(page, /index === randomRow/);
   assert.match(css, /rowRefreshEven 520ms ease-out var\(--refresh-delay\)/);
   assert.match(css, /transition: transform 880ms/);
-  assert.match(css, /replaySellA 820ms[^;]*forwards/);
-  assert.match(css, /replayBuyA 820ms[^;]*forwards/);
+  assert.match(css, /replaySellA var\(--depth-duration\)[^;]*forwards/);
+  assert.match(css, /replayBuyA var\(--depth-duration\)[^;]*forwards/);
+  assert.match(page, /شمارنده سریع قیمت/);
+  assert.match(page, /سرعت رفرش اوردربوک/);
+  assert.match(css, /bookDigitRoll/);
   assert.match(css, /scaleX\(var\(--sell-depth\)\)/);
   assert.match(css, /scaleX\(var\(--buy-depth\)\)/);
   assert.doesNotMatch(css, /numberShockUp|numberShockDown/);
@@ -126,6 +130,19 @@ test("uses Bitycle with authenticated real candle data", async () => {
 test("keeps required assets and no obsolete starter surface", async () => {
   await access(new URL("../public/taline-logo.png", import.meta.url));
   await access(new URL("../public/fonts/Dana-Regular.woff2", import.meta.url));
+  const [page, analysis, sentimentRoute] = await Promise.all([
+    read("app/page.tsx"),
+    read("public/market-analysis.html"),
+    read("app/api/market-sentiment/route.ts"),
+  ]);
+  assert.match(page, /STAGE_WIDTH = 1_344/);
+  assert.match(page, /src="\/market-analysis\.html"/);
+  assert.match(page, /نمودار طلای ۱۸ عیار/);
+  assert.match(analysis, /const API_URL = '\/api\/market-price'/);
+  assert.match(analysis, /const SENTIMENT_URL = '\/api\/market-sentiment'/);
+  assert.doesNotMatch(analysis, /id="(?:buyGram|sellGram)">[۰-۹]/);
+  assert.match(sentimentRoute, /https:\/\/my\.tlyn\.ir\/api\/v2\/gold-transactions\/supply-demand/);
+  assert.match(sentimentRoute, /getMarketCookie/);
   await access(new URL("../Start Spot Wall.command", import.meta.url));
   await assert.rejects(access(new URL("../app/_sites-preview/SkeletonPreview.tsx", import.meta.url)));
   await access(new URL("../.openai/hosting.json", import.meta.url));

@@ -53,8 +53,18 @@ body {
 button { font: inherit; }
 
 .stage-viewport { position: relative; flex: none; }
-.stage-scaler { position: absolute; inset: 0 auto auto 0; width: 960px; height: 576px; transform-origin: top left; }
-.stage {
+.stage-scaler { position: absolute; inset: 0 auto auto 0; width: 1344px; height: 576px; transform-origin: top left; }
+.wall-layout {
+  width: 1344px;
+  height: 576px;
+  display: grid;
+  grid-template-columns: 384px 960px;
+  grid-template-areas: "analysis market";
+  overflow: hidden;
+  background: #000;
+}
+.market-stage {
+  grid-area: market;
   width: 960px;
   height: 576px;
   padding: 10px;
@@ -64,6 +74,15 @@ button { font: inherit; }
   overflow: hidden;
   background: #000;
 }
+.analysis-panel {
+  grid-area: analysis;
+  width: 384px;
+  height: 576px;
+  overflow: hidden;
+  border-right: 1px solid #171a1f;
+  background: #fff;
+}
+.analysis-panel iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
 .market-header, .chart-card, .orderbook-card {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -162,10 +181,12 @@ button { font: inherit; }
   padding: 5px 10px;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   border-bottom: 1px solid var(--line);
   background: #06080a;
 }
+.chart-title { display: flex; align-items: center; }
+.chart-title b { color: #e8eaed; font-size: 10px; font-weight: 700; }
 .ranges { display: flex; gap: 2px; direction: rtl; }
 .ranges button {
   min-width: 50px;
@@ -287,14 +308,44 @@ button { font: inherit; }
   transform-origin: left center;
   background: linear-gradient(90deg, rgba(32,214,160,.25), rgba(32,214,160,.12));
 }
-.book-paired-row.depth-replay-mode.replay-0 .sell-depth { animation: replaySellA 820ms cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
-.book-paired-row.depth-replay-mode.replay-1 .sell-depth { animation: replaySellB 820ms cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
-.book-paired-row.depth-replay-mode.replay-0 .buy-depth { animation: replayBuyA 820ms cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
-.book-paired-row.depth-replay-mode.replay-1 .buy-depth { animation: replayBuyB 820ms cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
-.book-paired-row.depth-replay-mode.replay-0 .sell-price { animation: sellPriceRefreshA 460ms ease-out var(--refresh-delay) forwards; }
-.book-paired-row.depth-replay-mode.replay-1 .sell-price { animation: sellPriceRefreshB 460ms ease-out var(--refresh-delay) forwards; }
-.book-paired-row.depth-replay-mode.replay-0 .buy-price { animation: buyPriceRefreshA 460ms ease-out var(--refresh-delay) forwards; }
-.book-paired-row.depth-replay-mode.replay-1 .buy-price { animation: buyPriceRefreshB 460ms ease-out var(--refresh-delay) forwards; }
+.book-paired-row.depth-replay-mode.replay-0 .sell-depth { animation: replaySellA var(--depth-duration) cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
+.book-paired-row.depth-replay-mode.replay-1 .sell-depth { animation: replaySellB var(--depth-duration) cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
+.book-paired-row.depth-replay-mode.replay-0 .buy-depth { animation: replayBuyA var(--depth-duration) cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
+.book-paired-row.depth-replay-mode.replay-1 .buy-depth { animation: replayBuyB var(--depth-duration) cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
+.book-paired-row.depth-replay-mode.replay-0 .sell-price { animation: sellPriceRefreshA 500ms ease-out var(--refresh-delay) forwards; }
+.book-paired-row.depth-replay-mode.replay-1 .sell-price { animation: sellPriceRefreshB 500ms ease-out var(--refresh-delay) forwards; }
+.book-paired-row.depth-replay-mode.replay-0 .buy-price { animation: buyPriceRefreshA 500ms ease-out var(--refresh-delay) forwards; }
+.book-paired-row.depth-replay-mode.replay-1 .buy-price { animation: buyPriceRefreshB 500ms ease-out var(--refresh-delay) forwards; }
+.odometer-price { display: flex !important; align-items: center; justify-content: center; direction: ltr; }
+.book-number-digit {
+  width: .55em;
+  height: 23px;
+  display: block;
+  overflow: hidden;
+  font: inherit;
+  font-style: normal;
+}
+.book-number-strip {
+  height: 46px;
+  display: flex;
+  flex-direction: column;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  transform: translateY(-50%);
+}
+.book-number-strip em {
+  height: 23px;
+  display: block;
+  color: inherit;
+  font: inherit;
+  font-style: normal;
+  line-height: 23px;
+}
+.book-number-separator { color: inherit; font: inherit; font-style: normal; line-height: 23px; }
+.book-paired-row.depth-replay-mode .book-number-strip {
+  animation: bookDigitRoll 340ms cubic-bezier(.2,.72,.22,1) calc(var(--refresh-delay) + var(--digit-delay)) forwards;
+}
 .book-paired-row.revision-0 .paired-depth { animation: depthChangeA .72s ease-out; }
 .book-paired-row.revision-1 .paired-depth { animation: depthChangeB .72s ease-out; }
 .book-paired-row.revision-0 .paired-amount,
@@ -356,10 +407,11 @@ button { font: inherit; }
 @keyframes replaySellB { 0% { transform: scaleX(0); opacity: .2; } 100% { transform: scaleX(var(--sell-depth)); opacity: 1; } }
 @keyframes replayBuyA { 0% { transform: scaleX(0); opacity: .2; } 100% { transform: scaleX(var(--buy-depth)); opacity: 1; } }
 @keyframes replayBuyB { 0% { transform: scaleX(0); opacity: .2; } 100% { transform: scaleX(var(--buy-depth)); opacity: 1; } }
-@keyframes sellPriceRefreshA { 0%, 100% { color: #ff5a72; text-shadow: none; } 36% { color: #ff9bab; text-shadow: 0 0 4px rgba(255,255,255,.18); } }
-@keyframes sellPriceRefreshB { 0%, 100% { color: #ff5a72; text-shadow: none; } 36% { color: #ff9bab; text-shadow: 0 0 4px rgba(255,255,255,.18); } }
-@keyframes buyPriceRefreshA { 0%, 100% { color: #35dda9; text-shadow: none; } 36% { color: #95ebd0; text-shadow: 0 0 4px rgba(255,255,255,.18); } }
-@keyframes buyPriceRefreshB { 0%, 100% { color: #35dda9; text-shadow: none; } 36% { color: #95ebd0; text-shadow: 0 0 4px rgba(255,255,255,.18); } }
+@keyframes sellPriceRefreshA { 0%, 100% { color: #ff5a72; text-shadow: none; } 36% { color: #ffc0c9; text-shadow: 0 0 5px rgba(255,255,255,.26); } }
+@keyframes sellPriceRefreshB { 0%, 100% { color: #ff5a72; text-shadow: none; } 36% { color: #ffc0c9; text-shadow: 0 0 5px rgba(255,255,255,.26); } }
+@keyframes buyPriceRefreshA { 0%, 100% { color: #35dda9; text-shadow: none; } 36% { color: #b7f5e2; text-shadow: 0 0 5px rgba(255,255,255,.26); } }
+@keyframes buyPriceRefreshB { 0%, 100% { color: #35dda9; text-shadow: none; } 36% { color: #b7f5e2; text-shadow: 0 0 5px rgba(255,255,255,.26); } }
+@keyframes bookDigitRoll { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
 
 .session-backdrop {
   position: absolute;
@@ -433,6 +485,27 @@ button { font: inherit; }
 .motion-settings label > span { display: grid; gap: 2px; }
 .motion-settings b { color: #e5e8ec; font-size: 8px; font-weight: 600; }
 .motion-settings small { color: var(--muted); font-size: 6.5px; line-height: 1.5; }
+.motion-controls { margin-top: 8px; display: grid; grid-template-columns: 1.35fr 1fr; gap: 7px; }
+.motion-controls label { margin: 0; border: 1px solid #20252c; border-radius: 5px; background: #050608; }
+.counter-setting { min-height: 48px; padding: 7px; display: flex !important; align-items: flex-start; gap: 7px; cursor: pointer; }
+.counter-setting input { margin: 2px 0 0; accent-color: var(--green); }
+.counter-setting > span { display: grid; gap: 2px; }
+.counter-setting b { color: #e5e8ec; font-size: 8px; font-weight: 600; }
+.counter-setting small { color: var(--muted); font-size: 6.3px; line-height: 1.45; }
+.speed-setting { min-height: 48px; padding: 6px 7px; display: grid !important; align-content: center; gap: 4px; }
+.speed-setting > span { color: #aeb4bd; font-size: 7px; }
+.speed-setting select {
+  width: 100%;
+  height: 23px;
+  padding: 0 7px;
+  border: 1px solid #252b34;
+  border-radius: 4px;
+  outline: 0;
+  color: #e2e5e9;
+  background: #101318;
+  font: inherit;
+  font-size: 7.5px;
+}
 .session-message { min-height: 15px; margin: 8px 0 10px; color: var(--muted); font-size: 8px; }
 .session-message.verified, .session-message.saved { color: var(--green); }
 .session-message.error { color: var(--red); }
