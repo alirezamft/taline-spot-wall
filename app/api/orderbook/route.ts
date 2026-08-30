@@ -29,9 +29,10 @@ export async function GET() {
 
     const contentType = response.headers.get("content-type") ?? "";
     if (!response.ok || !contentType.includes("application/json")) {
+      const status = response.status === 401 || response.status === 403 ? response.status : 502;
       return Response.json(
-        { status: false, error: "ORDERBOOK_UPSTREAM_ERROR" },
-        { status: 502, headers: { "Cache-Control": "no-store" } },
+        { status: false, error: status === 502 ? "ORDERBOOK_UPSTREAM_ERROR" : "ORDERBOOK_UNAUTHORIZED" },
+        { status, headers: { "Cache-Control": "no-store" } },
       );
     }
 
