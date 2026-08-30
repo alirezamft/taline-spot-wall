@@ -168,7 +168,7 @@ function MarketChart({ timeframe, lastPrice, theme, onTimeframeChange }: { timef
   );
 }
 
-function BookValue({ value, className, format, motion, direction, trigger, delay }: { value: number; className: string; format: (value: number) => string; motion: NumberMotionMode; direction: "buy" | "sell" | "amount"; trigger: number; delay: number }) {
+function BookValue({ value, className, format, motion, direction, trigger, delay, duration }: { value: number; className: string; format: (value: number) => string; motion: NumberMotionMode; direction: "buy" | "sell" | "amount"; trigger: number; delay: number; duration: number }) {
   const elementRef = useRef<HTMLSpanElement>(null);
   const formatted = format(value);
   useEffect(() => {
@@ -180,7 +180,8 @@ function BookValue({ value, className, format, motion, direction, trigger, delay
     }
     const offset = direction === "amount" ? Math.max(value * 0.12, 0.001) : Math.max(value * 0.00035, 10);
     const start = direction === "sell" ? value + offset : Math.max(0, value - offset);
-    const steps = 8;
+    const steps = 10;
+    const stepDuration = Math.max(35, Math.round(duration / steps));
     let step = 0;
     let interval = 0;
     const timeout = window.setTimeout(() => {
@@ -193,14 +194,14 @@ function BookValue({ value, className, format, motion, direction, trigger, delay
           window.clearInterval(interval);
           element.textContent = formatted;
         }
-      }, 42);
+      }, stepDuration);
     }, delay);
     return () => {
       window.clearTimeout(timeout);
       window.clearInterval(interval);
       if (element) element.textContent = formatted;
     };
-  }, [delay, direction, format, formatted, motion, trigger, value]);
+  }, [delay, direction, duration, format, formatted, motion, trigger, value]);
   return <span key={`${motion}-${trigger}`} ref={elementRef} className={`${className}${motion === "type" ? " book-type-motion" : motion === "count" ? " book-count-motion" : ""}`} aria-label={formatted}>{formatted}</span>;
 }
 
@@ -239,14 +240,14 @@ function PairedOrderRows({ bids, asks, replaySequence, motionMode, motionSpeed, 
         {...(ask ? { "data-ask-price": ask.price, "data-ask-amount": ask.amount } : {})}
       >
         {ask ? <>
-          <BookValue value={ask.amount} className="paired-amount sell-amount" format={amount} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={animationDelay} />
-          {wide && <BookValue value={ask.price * ask.amount} className="paired-total sell-total" format={toman} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={animationDelay} />}
-          <BookValue value={ask.price} className="paired-price sell-price" format={toman} motion={activeNumberMotion} direction="sell" trigger={replaySequence} delay={animationDelay} />
+          <BookValue value={ask.amount} className="paired-amount sell-amount" format={amount} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={animationDelay} duration={profile.depthDuration} />
+          {wide && <BookValue value={ask.price * ask.amount} className="paired-total sell-total" format={toman} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={animationDelay} duration={profile.depthDuration} />}
+          <BookValue value={ask.price} className="paired-price sell-price" format={toman} motion={activeNumberMotion} direction="sell" trigger={replaySequence} delay={animationDelay} duration={profile.depthDuration} />
         </> : Array.from({ length: wide ? 3 : 2 }, (_, emptyIndex) => <span key={`sell-empty-${emptyIndex}`} />)}
         {bid ? <>
-          <BookValue value={bid.price} className="paired-price buy-price" format={toman} motion={activeNumberMotion} direction="buy" trigger={replaySequence} delay={animationDelay} />
-          {wide && <BookValue value={bid.price * bid.amount} className="paired-total buy-total" format={toman} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={animationDelay} />}
-          <BookValue value={bid.amount} className="paired-amount buy-amount" format={amount} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={animationDelay} />
+          <BookValue value={bid.price} className="paired-price buy-price" format={toman} motion={activeNumberMotion} direction="buy" trigger={replaySequence} delay={animationDelay} duration={profile.depthDuration} />
+          {wide && <BookValue value={bid.price * bid.amount} className="paired-total buy-total" format={toman} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={animationDelay} duration={profile.depthDuration} />}
+          <BookValue value={bid.amount} className="paired-amount buy-amount" format={amount} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={animationDelay} duration={profile.depthDuration} />
         </> : Array.from({ length: wide ? 3 : 2 }, (_, emptyIndex) => <span key={`buy-empty-${emptyIndex}`} />)}
         {ask && <i className="paired-depth sell-depth" aria-hidden="true" />}
         {bid && <i className="paired-depth buy-depth" aria-hidden="true" />}
@@ -289,15 +290,8 @@ function OrderBook({ snapshot, motionMode, motionSpeed, numberMotion, priceFlash
       data-health={snapshot.health}
     >
       <div className="book-heading">
-        <div><b>دفتر سفارش‌ها</b><span>عمق بازار</span></div>
-        {buyShare !== null && <div className="book-balance" aria-label="تعادل حجم سفارش‌ها">
-          <div><b>تعادل حجم سفارش‌ها</b><span className="buy-share">خرید {faInteger.format(buyShare)}٪</span><span className="sell-share">فروش {faInteger.format(100 - buyShare)}٪</span></div>
-          <div className="balance-track" aria-hidden="true"><i className="balance-buy" style={{ width: `${buyShare}%` }} /><i className="balance-sell" style={{ width: `${100 - buyShare}%` }} /></div>
-        </div>}
-      </div>
-      <div className={`book-center ${snapshot.lastMove}`}>
-        <div><b>{toman(snapshot.lastPrice)}</b><span>آخرین معامله</span></div>
-        <div><strong>{toman(snapshot.spread)}</strong><span>اختلاف بهترین قیمت خرید و فروش</span></div>
+        <b>دفتر سفارش‌ها</b>
+        <div className={`book-last ${snapshot.lastMove}`}><span>آخرین معامله</span><strong>{toman(snapshot.lastPrice)}</strong></div>
       </div>
       <div className="book-head paired-head">
         <span>مقدار فروش</span>{wide && <span>کل فروش</span>}<span className="sell-price">قیمت فروش</span><span className="buy-price">قیمت خرید</span>{wide && <span>کل خرید</span>}<span>مقدار خرید</span>
@@ -305,6 +299,10 @@ function OrderBook({ snapshot, motionMode, motionSpeed, numberMotion, priceFlash
       {snapshot.bids.length === 0 && snapshot.asks.length === 0
         ? <div className="book-empty">{snapshot.health === "session-required" ? "برای دریافت بازار، اتصال را از لوگوی طلاین تنظیم کنید" : "در حال دریافت دفتر سفارش‌ها…"}</div>
         : <div className="book-rows"><PairedOrderRows bids={snapshot.bids} asks={snapshot.asks} replaySequence={replaySequence} motionMode={motionMode} motionSpeed={motionSpeed} numberMotion={numberMotion} priceFlash={priceFlash} wide={wide} /></div>}
+      {buyShare !== null && <div className="book-balance" aria-label="تعادل حجم سفارش‌ها">
+        <div className="balance-labels"><span className="sell-share">فروش {faInteger.format(100 - buyShare)}٪</span><b>تعادل حجم سفارش‌ها</b><span className="buy-share">خرید {faInteger.format(buyShare)}٪</span></div>
+        <div className="balance-track" aria-hidden="true"><i className="balance-buy" style={{ width: `${buyShare}%` }} /><i className="balance-sell" style={{ width: `${100 - buyShare}%` }} /></div>
+      </div>}
     </aside>
   );
 }
@@ -498,33 +496,27 @@ function SessionDialog({ open, motionMode, motionSpeed, numberMotion, priceFlash
 }
 
 function Header({ snapshot, onOpenSession }: { snapshot: MarketSnapshot; onOpenSession: () => void }) {
-  const metrics = [
-    { label: "بیشترین ۲۴ ساعت", value: toman(snapshot.high24h) },
-    { label: "کمترین ۲۴ ساعت", value: toman(snapshot.low24h) },
-    { label: "بهترین خرید", value: toman(snapshot.bestBid), tone: "positive" },
-    { label: "بهترین فروش", value: toman(snapshot.bestAsk), tone: "negative" },
-    { label: "اختلاف قیمت", value: toman(snapshot.spread) },
-  ];
   const priceTone = snapshot.lastMove === "buy" ? "positive" : snapshot.lastMove === "sell" ? "negative" : "";
   return (
-    <header className="market-header">
+    <header className="market-summary-header">
       <section className="identity">
         <button className="identity-trigger" type="button" onClick={onOpenSession} aria-label="تنظیم اتصال داده">
           <Image src="/taline-logo.png" alt="لوگوی طلاین" width={43} height={43} priority />
         </button>
-        <div><strong>طلاین</strong><small dir="ltr">GOLD18IRT · SPOT</small></div>
+        <div><strong>طلاین</strong><small dir="ltr">GOLD18 / IRT</small><small className={`health-copy ${snapshot.health}`}>{healthText(snapshot.health)}</small></div>
       </section>
       <section className="headline-price">
-        <span>آخرین قیمت معامله در بازار پیشرفته <small>تومان</small></span>
+        <span>قیمت آخرین معامله در بازار پیشرفته <small>تومان</small></span>
         <strong className={`price-number ${priceTone}`}>{toman(snapshot.lastPrice)}</strong>
-        <small className={`health-copy ${snapshot.health}`}>{healthText(snapshot.health)}</small>
       </section>
-      {metrics.map((metric) => (
-        <section className="metric" key={metric.label}>
-          <span>{metric.label}</span>
-          <strong className={metric.tone ?? ""}>{metric.value}</strong>
-        </section>
-      ))}
+      <section className="metric-group" aria-label="بازه قیمت ۲۴ ساعت">
+        <div className="metric-item"><span>بیشترین قیمت ۲۴ ساعت</span><strong>{toman(snapshot.high24h)}</strong></div>
+        <div className="metric-item"><span>کمترین قیمت ۲۴ ساعت</span><strong>{toman(snapshot.low24h)}</strong></div>
+      </section>
+      <section className="metric-group" aria-label="بهترین قیمت‌های بازار">
+        <div className="metric-item"><span>بهترین قیمت فروش</span><strong className="negative">{toman(snapshot.bestAsk)}</strong></div>
+        <div className="metric-item"><span>بهترین قیمت خرید</span><strong className="positive">{toman(snapshot.bestBid)}</strong></div>
+      </section>
     </header>
   );
 }
@@ -593,7 +585,8 @@ export default function Home() {
     const timer = window.setTimeout(() => window.location.reload(), PAGE_RELOAD_INTERVAL_MS);
     return () => window.clearTimeout(timer);
   }, []);
-  const scalerStyle = { transform: `scale(${scale})`, "--stage-height": `${logicalHeight}px` } as CSSProperties;
+  const marketHeaderHeight = Math.min(156, Math.max(132, logicalHeight * 0.22));
+  const scalerStyle = { transform: `scale(${scale})`, "--stage-height": `${logicalHeight}px`, "--market-header-height": `${marketHeaderHeight}px` } as CSSProperties;
   return (
     <div className="stage-viewport" style={{ width: STAGE_WIDTH * scale, height: viewportHeight }}>
       <div style={scalerStyle} className="stage-scaler">

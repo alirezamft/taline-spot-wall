@@ -398,8 +398,9 @@ export function BitycleChart({ interval, lastPrice, theme }: { interval: "15" | 
       script.async = true;
       script.type = "text/javascript";
       script.textContent = JSON.stringify({
+        parentHostname: "my.tlyn.ir",
         id: WIDGET_ID,
-        theme: theme === "light" ? "light" : "taline",
+        theme: "taline",
         type: "ac",
         locale: "fa",
         mode: theme,
@@ -418,6 +419,7 @@ export function BitycleChart({ interval, lastPrice, theme }: { interval: "15" | 
           "timeframes_toolbar",
           "legend_widget",
           "widget_logo",
+          "adaptive_logo",
           "context_menus",
           "show_exchange",
           "order_panel",
@@ -441,7 +443,7 @@ export function BitycleChart({ interval, lastPrice, theme }: { interval: "15" | 
           registrationTimer = null;
           datafeed = installExternalDatafeed(widget, resolutionSeconds, supportedResolutions, lastPriceRef.current);
           datafeedRef.current = datafeed;
-          widget.setConfig?.({ mode: theme, "color-palette": CHART_PALETTE, chart_style: "Candle", overrides: chartOverrides(theme) });
+          widget.setConfig?.({ theme: "taline", mode: theme, "color-palette": CHART_PALETTE, chart_style: "Candle", overrides: chartOverrides(theme) });
           setState("ready");
         } else if (attempts >= 100) {
           if (registrationTimer) clearInterval(registrationTimer);

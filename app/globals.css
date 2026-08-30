@@ -81,7 +81,7 @@
   --control-border: #d2d8df;
   --dialog-bg: #fff;
   --row-refresh: rgba(25,35,46,.16);
-  --row-freeze: rgba(94,105,117,.18);
+  --row-freeze: rgba(207,231,248,.72);
   --sell-depth-start: rgba(224,54,82,.06);
   --sell-depth-end: rgba(224,54,82,.15);
   --buy-depth-start: rgba(13,158,113,.15);
@@ -123,7 +123,7 @@ button { font: inherit; }
   height: var(--stage-height, 576px);
   padding: 10px;
   display: grid;
-  grid-template-rows: 116px minmax(0, 1fr);
+  grid-template-rows: var(--market-header-height, 144px) minmax(0, 1fr);
   gap: 8px;
   overflow: hidden;
   color: var(--text);
@@ -138,7 +138,7 @@ button { font: inherit; }
   background: #fff;
 }
 .analysis-panel iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
-.market-header, .chart-card, .orderbook-card {
+.market-summary-header, .chart-card, .orderbook-card {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -146,21 +146,25 @@ button { font: inherit; }
 }
 
 /* Exhibition-scale market header */
-.market-header { display: flex; align-items: center; height: 116px; padding: 10px 12px; }
+.market-summary-header {
+  height: var(--market-header-height, 144px);
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 202px 250px repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
 .identity {
-  width: 202px;
-  height: 94px;
-  flex: none;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-left: 15px;
+  padding: 0 4px 0 15px;
   border-left: 1px solid var(--line);
 }
-.identity img { width: 70px; height: 70px; flex: none; object-fit: contain; }
+.identity img { width: 68px; height: 68px; flex: none; object-fit: contain; }
 .identity-trigger {
-  width: 70px;
-  height: 70px;
+  width: 68px;
+  height: 68px;
   flex: none;
   padding: 0;
   border: 0;
@@ -169,53 +173,51 @@ button { font: inherit; }
   cursor: pointer;
 }
 .identity-trigger:focus-visible { outline: 1px solid var(--gold); outline-offset: 3px; }
-.identity > div { min-width: 0; display: grid; align-content: center; gap: 9px; }
-.identity strong { font-size: 25px; font-weight: 800; line-height: 26px; }
-.identity small { color: var(--muted-2); font-size: 8.5px; letter-spacing: .8px; white-space: nowrap; }
+.identity > div { min-width: 0; display: grid; align-content: center; gap: 8px; }
+.identity strong { font-size: 25px; font-weight: 800; line-height: 27px; }
+.identity small { color: var(--muted-2); font-size: 10px; letter-spacing: .65px; line-height: 12px; white-space: nowrap; }
+.identity .health-copy { font-size: 10px; letter-spacing: 0; }
 .headline-price {
-  width: 232px;
-  height: 94px;
-  flex: none;
-  padding: 0 16px;
+  min-width: 0;
+  padding: 0 18px;
   display: grid;
   align-content: center;
-  gap: 1px;
+  gap: 9px;
   border-left: 1px solid var(--line);
 }
-.headline-price > span, .metric span { color: var(--muted); font-size: 10px; line-height: 1.25; }
-.headline-price > span small { color: var(--muted-2); font-size: 8px; }
+.headline-price > span, .metric-item span { color: var(--muted); font-size: 11.5px; line-height: 1.4; font-weight: 550; }
+.headline-price > span small { color: var(--muted-2); font-size: 11px; }
 .headline-price .price-number {
   direction: ltr;
   text-align: right;
   display: inline-block;
   width: fit-content;
-  font-size: 32px;
-  line-height: 36px;
+  font-size: 36px;
+  line-height: 40px;
   font-weight: 800;
   letter-spacing: -.15px;
   font-variant-numeric: tabular-nums;
   transition: color 200ms ease;
 }
-.headline-price > small { font-size: 8.5px; }
 .health-copy.live { color: var(--green); }
 .health-copy.stale, .health-copy.session-required { color: var(--red); }
-.metric {
+.metric-group {
   min-width: 0;
-  flex: 1;
-  height: 82px;
-  padding: 0 10px;
+  padding: 0 14px;
   display: grid;
-  align-content: center;
-  gap: 10px;
+  grid-template-rows: 1fr 1fr;
   border-left: 1px solid var(--line);
 }
-.metric:last-child { border-left: 0; }
-.metric strong {
+.metric-group:last-child { border-left: 0; }
+.metric-item { min-height: 0; display: grid; align-content: center; gap: 3px; }
+.metric-item + .metric-item { border-top: 1px solid var(--line-soft); }
+.metric-item span { white-space: nowrap; }
+.metric-item strong {
   direction: ltr;
   text-align: right;
-  font-size: 14px;
-  line-height: 16px;
-  font-weight: 700;
+  font-size: 16.5px;
+  line-height: 19px;
+  font-weight: 750;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -277,27 +279,31 @@ button { font: inherit; }
 .orderbook-card {
   min-height: 0;
   display: grid;
-  grid-template-rows: 58px 54px 30px minmax(0, 1fr);
+  grid-template-rows: 64px 31px minmax(0, 1fr) 46px;
   direction: rtl;
   background: var(--order-bg);
 }
 .book-heading {
-  height: 58px;
-  padding: 8px 11px;
+  height: 64px;
+  padding: 9px 11px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
   background: var(--toolbar-bg);
 }
-.book-heading > div:first-child { display: grid; gap: 3px; }
-.book-heading b { font-size: 15px; font-weight: 800; }
-.book-heading > div:first-child span { color: var(--muted); font-size: 8.5px; }
-.book-balance { width: 158px; display: grid; gap: 6px; }
-.book-balance > div:first-child { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 6px; }
-.book-balance > div:first-child b { color: var(--muted); font-size: 8px; font-weight: 600; white-space: nowrap; }
-.book-balance > div:first-child span { font-size: 8.5px; font-weight: 700; white-space: nowrap; }
-.balance-track { height: 5px; display: flex; overflow: hidden; border-radius: 999px; background: var(--line-soft); direction: ltr; }
+.book-heading > b { font-size: 16px; font-weight: 800; }
+.book-last { display: grid; justify-items: end; align-content: center; gap: 3px; }
+.book-last span { color: var(--muted); font-size: 9.5px; font-weight: 600; }
+.book-last strong { direction: ltr; font-size: 20px; line-height: 22px; font-weight: 800; font-variant-numeric: tabular-nums; transition: color 200ms ease; }
+.book-last.buy strong { color: var(--green); }
+.book-last.sell strong { color: var(--red); }
+.book-last.neutral strong { color: var(--text); }
+.book-balance { padding: 7px 11px 8px; display: grid; align-content: center; gap: 6px; border-top: 1px solid var(--line-soft); background: var(--toolbar-bg); }
+.balance-labels { display: flex; align-items: center; justify-content: space-between; gap: 7px; direction: ltr; }
+.balance-labels b { color: var(--text); font-size: 9px; font-weight: 700; white-space: nowrap; }
+.balance-labels span { font-size: 10px; line-height: 12px; font-weight: 800; white-space: nowrap; }
+.balance-track { height: 7px; display: flex; overflow: hidden; border-radius: 999px; background: var(--line-soft); direction: rtl; }
 .balance-track i { display: block; height: 100%; transition: width .7s cubic-bezier(.2,.72,.22,1); }
 .balance-buy { background: var(--green); }
 .balance-sell { background: var(--red); }
@@ -309,11 +315,11 @@ button { font: inherit; }
   padding: 0 9px;
 }
 .paired-head {
-  height: 30px;
+  height: 31px;
   grid-template-columns: .92fr 1.08fr 1.08fr .92fr;
   direction: ltr;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   border-bottom: 1px solid var(--line-soft);
 }
@@ -342,7 +348,7 @@ button { font: inherit; }
   direction: ltr;
   overflow: hidden;
   color: #c5cad1;
-  font-size: 11.3px;
+  font-size: 12.2px;
   font-variant-numeric: tabular-nums;
 }
 .book-paired-row span {
@@ -352,7 +358,7 @@ button { font: inherit; }
   white-space: nowrap;
   text-align: center;
 }
-.book-paired-row .paired-price { font-size: 13.6px; font-weight: 700; }
+.book-paired-row .paired-price { font-size: 14.6px; font-weight: 750; }
 .book-paired-row .sell-price { color: var(--red); }
 .book-paired-row .buy-price { color: var(--green); }
 .book-paired-row .paired-amount { color: var(--text); font-weight: 600; }
@@ -393,15 +399,15 @@ button { font: inherit; }
 .book-paired-row.depth-replay-mode.cycle-1 .sell-depth { animation: replaySellB var(--depth-duration) cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
 .book-paired-row.depth-replay-mode.cycle-0 .buy-depth { animation: replayBuyA var(--depth-duration) cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
 .book-paired-row.depth-replay-mode.cycle-1 .buy-depth { animation: replayBuyB var(--depth-duration) cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
-.book-paired-row.motion-cycle.price-flash-on.cycle-0 .sell-price { animation: sellPriceRefreshA 520ms ease-out var(--refresh-delay) forwards; }
-.book-paired-row.motion-cycle.price-flash-on.cycle-1 .sell-price { animation: sellPriceRefreshB 520ms ease-out var(--refresh-delay) forwards; }
-.book-paired-row.motion-cycle.price-flash-on.cycle-0 .buy-price { animation: buyPriceRefreshA 520ms ease-out var(--refresh-delay) forwards; }
-.book-paired-row.motion-cycle.price-flash-on.cycle-1 .buy-price { animation: buyPriceRefreshB 520ms ease-out var(--refresh-delay) forwards; }
-.book-paired-row.motion-cycle.cycle-0 .book-type-motion { animation: bookTypeA 560ms steps(8, end) var(--refresh-delay) both; }
-.book-paired-row.motion-cycle.cycle-1 .book-type-motion { animation: bookTypeB 560ms steps(8, end) var(--refresh-delay) both; }
+.book-paired-row.motion-cycle.price-flash-on.cycle-0 .sell-price { animation: sellPriceRefreshA var(--depth-duration) ease-out var(--refresh-delay) forwards; }
+.book-paired-row.motion-cycle.price-flash-on.cycle-1 .sell-price { animation: sellPriceRefreshB var(--depth-duration) ease-out var(--refresh-delay) forwards; }
+.book-paired-row.motion-cycle.price-flash-on.cycle-0 .buy-price { animation: buyPriceRefreshA var(--depth-duration) ease-out var(--refresh-delay) forwards; }
+.book-paired-row.motion-cycle.price-flash-on.cycle-1 .buy-price { animation: buyPriceRefreshB var(--depth-duration) ease-out var(--refresh-delay) forwards; }
+.book-paired-row.motion-cycle.cycle-0 .book-type-motion { animation: bookTypeA var(--depth-duration) steps(10, end) var(--refresh-delay) both; }
+.book-paired-row.motion-cycle.cycle-1 .book-type-motion { animation: bookTypeB var(--depth-duration) steps(10, end) var(--refresh-delay) both; }
 .book-paired-row.motion-cycle .book-count-motion { transition: color .18s ease; }
-.book-paired-row.freeze-replay-mode.cycle-0 .row-refresh { animation: freezeRowA calc(var(--depth-duration) + 180ms) ease-out var(--refresh-delay) both; }
-.book-paired-row.freeze-replay-mode.cycle-1 .row-refresh { animation: freezeRowB calc(var(--depth-duration) + 180ms) ease-out var(--refresh-delay) both; }
+.book-paired-row.freeze-replay-mode.cycle-0 .row-refresh { animation: freezeRowA var(--depth-duration) cubic-bezier(.2,.72,.22,1) var(--refresh-delay) both; }
+.book-paired-row.freeze-replay-mode.cycle-1 .row-refresh { animation: freezeRowB var(--depth-duration) cubic-bezier(.2,.72,.22,1) var(--refresh-delay) both; }
 .book-paired-row.revision-0 .paired-depth { animation: depthChangeA .72s ease-out; }
 .book-paired-row.revision-1 .paired-depth { animation: depthChangeB .72s ease-out; }
 .book-paired-row.revision-0 .paired-amount,
@@ -409,33 +415,6 @@ button { font: inherit; }
 .book-paired-row.revision-0 .paired-price,
 .book-paired-row.revision-1 .paired-price { animation: priceLevelChanged .46s ease-out; }
 .book-paired-row.row-reprice { animation: rowReposition .56s cubic-bezier(.2,.72,.22,1); }
-.book-center {
-  height: 54px;
-  margin: 0;
-  padding: 5px 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-block: 1px solid var(--line);
-  background: var(--surface-raised);
-}
-.book-center > div { display: grid; gap: 0; }
-.book-center > div:last-child { text-align: left; }
-.book-center b {
-  direction: ltr;
-  display: inline-block;
-  width: fit-content;
-  font-size: 18px;
-  line-height: 21px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  transition: color 200ms ease;
-}
-.book-center.buy b { color: var(--green); }
-.book-center.sell b { color: var(--red); }
-.book-center.neutral b { color: var(--text); }
-.book-center strong { color: var(--text); direction: ltr; font-size: 10px; font-weight: 700; }
-.book-center span { color: var(--muted); font-size: 7px; }
 .book-empty { display: grid; place-items: center; height: 120px; padding: 15px; color: var(--muted); font-size: 8px; text-align: center; }
 @keyframes depthChangeA { 0% { filter: brightness(1.35); } 100% { filter: none; } }
 @keyframes depthChangeB { 0% { filter: brightness(1.35); } 100% { filter: none; } }
