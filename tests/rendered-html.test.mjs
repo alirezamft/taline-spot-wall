@@ -15,7 +15,8 @@ test("keeps the existing Persian videowall and operator session control", async 
 
   assert.match(layout, /lang="fa" dir="rtl"/);
   assert.match(page, /const scale = window\.innerWidth \/ STAGE_WIDTH/);
-  assert.match(page, /viewportHeight = window\.innerHeight \* \(heightPercent \/ 100\)/);
+  assert.match(page, /requestedHeight = window\.innerHeight \* \(heightPercent \/ 100\)/);
+  assert.match(page, /Math\.min\(MAX_RESPONSIVE_STAGE_HEIGHT, requestedHeight \/ scale\)/);
   assert.match(page, /طلاین/);
   assert.match(page, /دفتر سفارش‌ها/);
   assert.match(page, /انتخاب بازه کندل/);

@@ -27,6 +27,7 @@ const DISPLAY_HEIGHT_STORAGE_KEY = "tlyn-display-height-percent";
 const MOTION_EVENT = "tlyn-orderbook-motion-changed";
 const STAGE_WIDTH = 1_344;
 const STAGE_HEIGHT = 576;
+const MAX_RESPONSIVE_STAGE_HEIGHT = 806;
 const motionProfiles = {
   slow: { cycle: 9_500, step: 360, depthDuration: 980, randomBase: 1_300, randomRange: 1_501 },
   normal: { cycle: 7_500, step: 280, depthDuration: 820, randomBase: 900, randomRange: 1_301 },
@@ -137,8 +138,9 @@ function useStageScale(heightPercent: number) {
   useEffect(() => {
     const resize = () => {
       const scale = window.innerWidth / STAGE_WIDTH;
-      const viewportHeight = window.innerHeight * (heightPercent / 100);
-      setLayout({ scale, logicalHeight: viewportHeight / scale, viewportHeight });
+      const requestedHeight = window.innerHeight * (heightPercent / 100);
+      const logicalHeight = Math.min(MAX_RESPONSIVE_STAGE_HEIGHT, requestedHeight / scale);
+      setLayout({ scale, logicalHeight, viewportHeight: logicalHeight * scale });
     };
     resize();
     window.addEventListener("resize", resize, { passive: true });
