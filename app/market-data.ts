@@ -69,6 +69,11 @@ interface TlynOrderbookResponse {
   };
 }
 
+interface ValidatedOrderbook {
+  buy: RawOrderLevel[];
+  sell: RawOrderLevel[];
+}
+
 interface OfficialPrice {
   midpoint: number;
   high: number;
@@ -149,6 +154,35 @@ function exactLevels(raw: RawOrderLevel[], side: TradeSide) {
     const price = Number(level.quote);
     const amount = Number(Number(level.total_gram).toFixed(3));
     return { price, amount, total: price * amount, revision: 1, origin: "live" as const, motion: "steady" as const };
+  });
+}
+
+function validateLiveLevels(raw: RawOrderLevel[], side: TradeSide) {
+  const levels = liveLevels(raw, side).slice(0, LIVE_LEVELS);
+  if (levels.length !== LIVE_LEVELS) return null;
+  if (new Set(levels.map((level) => Number(level.quote))).size !== LIVE_LEVELS) return null;
+  const ordered = levels.every((level, index) => {
+    if (index === 0) return true;
+    const previous = Number(levels[index - 1].quote);
+    const current = Number(level.quote);
+    return side === "buy" ? previous > current : previous < current;
+  });
+  return ordered ? levels.map((level) => ({ ...level })) : null;
+}
+
+function validateOrderbook(payload: TlynOrderbookResponse | null): ValidatedOrderbook | null {
+  if (!payload?.status) return null;
+  const buy = validateLiveLevels(payload.data?.active_orders?.buy ?? [], "buy");
+  const sell = validateLiveLevels(payload.data?.active_orders?.sell ?? [], "sell");
+  if (!buy || !sell || Number(buy[0].quote) >= Number(sell[0].quote)) return null;
+  return { buy, sell };
+}
+
+function hasExactLivePrefix(display: OrderLevel[], raw: RawOrderLevel[], side: TradeSide) {
+  const expected = exactLevels(raw, side);
+  return expected.length === LIVE_LEVELS && expected.every((level, index) => {
+    const rendered = display[index];
+    return rendered?.origin === "live" && rendered.price === level.price && rendered.amount === level.amount;
   });
 }
 
@@ -305,6 +339,7 @@ export class TlynMarketDataProvider implements MarketDataProvider {
   private bookTimers: Partial<Record<TradeSide, ReturnType<typeof setTimeout>>> = {};
   private tickerTimer: ReturnType<typeof setTimeout> | null = null;
   private lastVisualMotionAt = 0;
+  private lastValidatedOrderbook: ValidatedOrderbook | null = null;
 
   getSnapshot() {
     return this.snapshot;
@@ -396,10 +431,10 @@ export class TlynMarketDataProvider implements MarketDataProvider {
     }
 
     const revision = previous.sequence + 1;
-    const replacementIndex = Math.random() < 0.2 ? selected[0] : -1;
+    const replacementIndex = Math.random() < 0.32 ? selected[0] : -1;
     const updated: OrderLevel[] = source.map((level, index) => {
       if (!selected.includes(index)) return level.motion === "steady" ? level : { ...level, motion: "steady" as const };
-      const amount = Number(clamp(level.amount * randomBetween(0.7, 1.35), 0.04, 9.5).toFixed(3));
+      const amount = Number(clamp(level.amount * randomBetween(0.45, 1.75), 0.04, 9.5).toFixed(3));
       const price = index === replacementIndex ? this.nudgeSupplementalPrice(source, index, side) : level.price;
       return {
         ...level,
@@ -433,7 +468,7 @@ export class TlynMarketDataProvider implements MarketDataProvider {
     const minimum = lowerNeighbor ? lowerNeighbor.price + PRICE_STEP : Math.max(PRICE_STEP, level.price - PRICE_STEP * 4);
     const maximum = higherNeighbor ? higherNeighbor.price - PRICE_STEP : level.price + PRICE_STEP * 4;
     if (maximum < minimum) return level.price;
-    const nudge = PRICE_STEP * randomInteger(1, 3) * (Math.random() < 0.5 ? -1 : 1);
+    const nudge = PRICE_STEP * randomInteger(2, 10) * (Math.random() < 0.5 ? -1 : 1);
     return roundToStep(clamp(level.price + nudge, minimum, maximum));
   }
 
@@ -569,16 +604,26 @@ export class TlynMarketDataProvider implements MarketDataProvider {
   private applyMarketUpdate(official: OfficialPrice | null, orderbook: TlynOrderbookResponse | null) {
     const previous = this.snapshot;
     const sequence = previous.sequence + 1;
-    const orderPrices = orderbook?.data?.prices;
-    const rawBids = orderbook?.data?.active_orders?.buy ?? [];
-    const rawAsks = orderbook?.data?.active_orders?.sell ?? [];
+    const validatedOrderbook = validateOrderbook(orderbook);
+    if (validatedOrderbook) this.lastValidatedOrderbook = validatedOrderbook;
+    const sourceBook = validatedOrderbook ?? this.lastValidatedOrderbook;
+    const orderPrices = validatedOrderbook ? orderbook?.data?.prices : undefined;
+    const rawBids = sourceBook?.buy ?? [];
+    const rawAsks = sourceBook?.sell ?? [];
     const realBids = exactLevels(rawBids, "buy");
     const realAsks = exactLevels(rawAsks, "sell");
     const officialReference = roundToStep(Number(orderPrices?.main_price) || official?.midpoint || previous.referencePrice);
-    const bestBid = realBids[0]?.price ?? roundToStep(officialReference - 850_000);
-    const bestAsk = realAsks[0]?.price ?? roundToStep(officialReference + 850_000);
-    const bids = makeBookSide(rawBids, "buy", bestBid, previous.bids, sequence);
-    const asks = makeBookSide(rawAsks, "sell", bestAsk, previous.asks, sequence);
+    const candidateBestBid = realBids[0]?.price ?? previous.bestBid;
+    const candidateBestAsk = realAsks[0]?.price ?? previous.bestAsk;
+    const candidateBids = sourceBook ? makeBookSide(rawBids, "buy", candidateBestBid, previous.bids, sequence) : previous.bids;
+    const candidateAsks = sourceBook ? makeBookSide(rawAsks, "sell", candidateBestAsk, previous.asks, sequence) : previous.asks;
+    const hasValidLivePrefix = Boolean(sourceBook)
+      && hasExactLivePrefix(candidateBids, rawBids, "buy")
+      && hasExactLivePrefix(candidateAsks, rawAsks, "sell");
+    const bestBid = hasValidLivePrefix ? candidateBestBid : previous.bestBid;
+    const bestAsk = hasValidLivePrefix ? candidateBestAsk : previous.bestAsk;
+    const bids = hasValidLivePrefix ? candidateBids : previous.bids;
+    const asks = hasValidLivePrefix ? candidateAsks : previous.asks;
 
     const innerLow = bestBid + PRICE_STEP;
     const innerHigh = bestAsk - PRICE_STEP;

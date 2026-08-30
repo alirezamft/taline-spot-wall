@@ -51,9 +51,13 @@ test("keeps the wall fixed, scalable, API-ready, and motion-aware", async () => 
   assert.match(marketData, /const BOOK_LEVELS = 15/);
   assert.match(marketData, /const LIVE_LEVELS = 5/);
   assert.match(marketData, /function exactLevels/);
+  assert.match(marketData, /function validateOrderbook/);
+  assert.match(marketData, /function hasExactLivePrefix/);
+  assert.match(marketData, /private lastValidatedOrderbook/);
   assert.match(marketData, /slice\(0, LIVE_LEVELS\)/);
-  assert.match(marketData, /const bestBid = realBids\[0\]\?\.price/);
-  assert.match(marketData, /const bestAsk = realAsks\[0\]\?\.price/);
+  assert.match(marketData, /const candidateBestBid = realBids\[0\]\?\.price/);
+  assert.match(marketData, /const candidateBestAsk = realAsks\[0\]\?\.price/);
+  assert.match(marketData, /const hasValidLivePrefix = Boolean\(sourceBook\)/);
   assert.match(marketData, /const POLL_INTERVAL_MS = 3_000/);
   assert.match(marketData, /const BOOK_UPDATE_DELAY = \{ min: 2_400, max: 5_600 \}/);
   assert.match(marketData, /const TICKER_UPDATE_DELAY = \{ min: 1_500, max: 3_400 \}/);
@@ -64,7 +68,7 @@ test("keeps the wall fixed, scalable, API-ready, and motion-aware", async () => 
   assert.match(marketData, /setTimeout/);
   assert.match(marketData, /clearTimeout/);
   assert.match(marketData, /index >= LIVE_LEVELS && level\.origin === "supplemental"/);
-  assert.match(marketData, /randomBetween\(0\.7, 1\.35\)/);
+  assert.match(marketData, /randomBetween\(0\.45, 1\.75\)/);
   assert.match(marketData, /motion: "reprice"/);
   assert.match(marketData, /apiPriceChanged/);
   assert.match(marketData, /https:\/\/price\.tlyn\.ir\/api\/v1\/price/);
@@ -90,7 +94,7 @@ test("keeps the wall fixed, scalable, API-ready, and motion-aware", async () => 
   assert.match(css, /left: 50%/);
   assert.match(css, /\.sell-depth[\s\S]*right: 50%[\s\S]*scaleX\(var\(--sell-depth\)\)/);
   assert.match(css, /\.buy-depth[\s\S]*left: 50%[\s\S]*scaleX\(var\(--buy-depth\)\)/);
-  assert.match(css, /transition: transform 720ms/);
+  assert.match(css, /transition: transform 880ms/);
   assert.match(css, /rowReposition/);
   assert.match(css, /prefers-reduced-motion: reduce/);
   assert.match(css, /YekanBakhFaNum-Regular\.woff2/);

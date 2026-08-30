@@ -257,19 +257,19 @@ button { font: inherit; }
   height: 100%;
   pointer-events: none;
   will-change: transform;
-  transition: transform 720ms cubic-bezier(.2,.72,.22,1), opacity 300ms ease;
+  transition: transform 880ms cubic-bezier(.2,.72,.22,1), opacity 300ms ease;
 }
 .book-paired-row .sell-depth {
   right: 50%;
   transform: scaleX(var(--sell-depth));
   transform-origin: right center;
-  background: linear-gradient(90deg, rgba(240,68,97,.30), rgba(240,68,97,.56));
+  background: linear-gradient(90deg, rgba(240,68,97,.12), rgba(240,68,97,.26));
 }
 .book-paired-row .buy-depth {
   left: 50%;
   transform: scaleX(var(--buy-depth));
   transform-origin: left center;
-  background: linear-gradient(90deg, rgba(32,214,160,.54), rgba(32,214,160,.26));
+  background: linear-gradient(90deg, rgba(32,214,160,.25), rgba(32,214,160,.12));
 }
 .book-paired-row.revision-0 .paired-depth { animation: depthChangeA .72s ease-out; }
 .book-paired-row.revision-1 .paired-depth { animation: depthChangeB .72s ease-out; }
