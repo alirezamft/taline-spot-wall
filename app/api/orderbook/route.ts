@@ -1,10 +1,13 @@
+import { getMarketCookie } from "../../market-session";
+
 const ORDERBOOK_ENDPOINT = "https://my.tlyn.ir/api/v1/orders/data";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "fra1";
+export const runtime = "nodejs";
 
 export async function GET() {
-  const sessionCookie = process.env.TLYN_SESSION_COOKIE;
+  const sessionCookie = await getMarketCookie();
 
   if (!sessionCookie) {
     return Response.json(
@@ -16,6 +19,7 @@ export async function GET() {
   try {
     const response = await fetch(ORDERBOOK_ENDPOINT, {
       cache: "no-store",
+      redirect: "manual",
       signal: AbortSignal.timeout(2_500),
       headers: {
         Accept: "application/json",
@@ -23,7 +27,8 @@ export async function GET() {
       },
     });
 
-    if (!response.ok) {
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!response.ok || !contentType.includes("application/json")) {
       return Response.json(
         { status: false, error: "ORDERBOOK_UPSTREAM_ERROR" },
         { status: 502, headers: { "Cache-Control": "no-store" } },

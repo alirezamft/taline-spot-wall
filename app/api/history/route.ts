@@ -1,4 +1,5 @@
 import type { Candle, ChartTimeframe } from "../../market-data";
+import { getMarketCookie } from "../../market-session";
 
 const HISTORY_ENDPOINT = "https://my.tlyn.ir/api/v1/candle-price-chart";
 const RESOLUTIONS: Record<ChartTimeframe, { value: string; seconds: number }> = {
@@ -18,6 +19,7 @@ interface ColumnarCandles {
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "fra1";
+export const runtime = "nodejs";
 
 function toCandles(payload: ColumnarCandles): Candle[] {
   if (payload.s !== "ok" || !payload.t || !payload.o || !payload.h || !payload.l || !payload.c) return [];
@@ -37,7 +39,7 @@ function toCandles(payload: ColumnarCandles): Candle[] {
 }
 
 export async function GET() {
-  const sessionCookie = process.env.TLYN_SESSION_COOKIE;
+  const sessionCookie = await getMarketCookie();
   if (!sessionCookie) {
     return Response.json(
       { status: false, error: "HISTORY_SESSION_UNAVAILABLE" },
@@ -56,10 +58,12 @@ export async function GET() {
         });
         const response = await fetch(`${HISTORY_ENDPOINT}?${parameters}`, {
           cache: "no-store",
+          redirect: "manual",
           signal: AbortSignal.timeout(8_000),
           headers: { Accept: "application/json", Cookie: sessionCookie },
         });
-        if (!response.ok) throw new Error("history upstream");
+        const contentType = response.headers.get("content-type") ?? "";
+        if (!response.ok || !contentType.includes("application/json")) throw new Error("history upstream");
         return [timeframe, toCandles(await response.json() as ColumnarCandles)] as const;
       }),
     );

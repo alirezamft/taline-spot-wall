@@ -22,11 +22,13 @@ test("contains the complete Persian spot-market surface", async () => {
 });
 
 test("keeps the wall fixed, scalable, API-ready, and motion-aware", async () => {
-  const [page, marketData, orderbookRoute, historyRoute, seed, css, config, layout, packageJson] = await Promise.all([
+  const [page, marketData, orderbookRoute, historyRoute, sessionRoute, marketSession, seed, css, config, layout, packageJson] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/market-data.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/orderbook/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/history/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/market-session/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/market-session.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/history-seed.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../next.config.ts", import.meta.url), "utf8"),
@@ -81,13 +83,21 @@ test("keeps the wall fixed, scalable, API-ready, and motion-aware", async () => 
   assert.match(marketData, /sort\(\(a, b\) => side === "buy" \? b\.price - a\.price : a\.price - b\.price\)/);
   assert.doesNotMatch(marketData, /createCandles/);
   assert.doesNotMatch(marketData, /volume:/);
-  assert.match(orderbookRoute, /process\.env\.TLYN_SESSION_COOKIE/);
+  assert.match(orderbookRoute, /getMarketCookie/);
   assert.match(orderbookRoute, /https:\/\/my\.tlyn\.ir\/api\/v1\/orders\/data/);
   assert.doesNotMatch(orderbookRoute, /analytics_token|apptlynir_session=|XSRF-TOKEN/);
   assert.match(historyRoute, /candle-price-chart/);
   assert.match(historyRoute, /"15m": \{ value: "15"/);
   assert.match(historyRoute, /"4h": \{ value: "240"/);
   assert.doesNotMatch(historyRoute, /analytics_token|apptlynir_session=|XSRF-TOKEN/);
+  assert.match(page, /identity-trigger/);
+  assert.match(page, /\/api\/market-session/);
+  assert.match(page, /تست اتصال/);
+  assert.match(sessionRoute, /testMarketCookie/);
+  assert.match(sessionRoute, /saveMarketCookie/);
+  assert.match(marketSession, /\.runtime/);
+  assert.match(marketSession, /process\.env\.TLYN_SESSION_COOKIE/);
+  assert.doesNotMatch(`${sessionRoute}\n${marketSession}`, /analytics_token|XSRF-TOKEN/);
   assert.doesNotMatch(config, /TLYN_SESSION_COOKIE:\s*orderbookSession/);
   assert.match(css, /\.stage\s*\{[^}]*width: 960px;[^}]*height: 576px;/s);
   assert.match(css, /right: 50%/);

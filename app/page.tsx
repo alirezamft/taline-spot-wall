@@ -299,7 +299,112 @@ function OrderBook({ snapshot }: { snapshot: MarketSnapshot }) {
   );
 }
 
-function Header({ snapshot }: { snapshot: MarketSnapshot }) {
+type SessionDialogState = "idle" | "testing" | "verified" | "saving" | "saved" | "error";
+
+function SessionDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [cookie, setCookie] = useState("");
+  const [verifiedCookie, setVerifiedCookie] = useState("");
+  const [state, setState] = useState<SessionDialogState>("idle");
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && state !== "testing" && state !== "saving") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [open, onClose, state]);
+
+  if (!open) return null;
+
+  const request = async (action: "test" | "save") => {
+    const candidate = cookie.trim();
+    if (!candidate) {
+      setState("error");
+      setMessage("کوکی را وارد کنید.");
+      return;
+    }
+    setState(action === "test" ? "testing" : "saving");
+    setMessage("");
+    try {
+      const response = await fetch("/api/market-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, cookie: candidate }),
+      });
+      const result = await response.json() as { ok?: boolean; upstreamStatus?: number };
+      if (!response.ok || !result.ok) {
+        setState("error");
+        setVerifiedCookie("");
+        setMessage(result.upstreamStatus ? `اتصال تأیید نشد؛ پاسخ API: ${faInteger.format(result.upstreamStatus)}` : "اتصال به API برقرار نشد.");
+        return;
+      }
+      if (action === "test") {
+        setVerifiedCookie(candidate);
+        setState("verified");
+        setMessage("اتصال تأیید شد؛ پاسخ API: ۲۰۰");
+      } else {
+        setState("saved");
+        setMessage("کوکی جدید ذخیره و فعال شد.");
+        window.dispatchEvent(new Event("tlyn-session-updated"));
+        window.setTimeout(onClose, 700);
+      }
+    } catch {
+      setState("error");
+      setVerifiedCookie("");
+      setMessage("اتصال به API برقرار نشد.");
+    }
+  };
+
+  const close = () => {
+    if (state === "testing" || state === "saving") return;
+    setCookie("");
+    setVerifiedCookie("");
+    setState("idle");
+    setMessage("");
+    onClose();
+  };
+
+  return (
+    <div className="session-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && close()}>
+      <section className="session-dialog" role="dialog" aria-modal="true" aria-labelledby="session-title">
+        <div className="session-dialog-title">
+          <div><strong id="session-title">تنظیم اتصال داده</strong><span>کوکی دسترسی API طلاین</span></div>
+          <button type="button" onClick={close} aria-label="بستن">×</button>
+        </div>
+        <label htmlFor="market-cookie">Cookie</label>
+        <textarea
+          id="market-cookie"
+          dir="ltr"
+          value={cookie}
+          onChange={(event) => {
+            setCookie(event.target.value);
+            setVerifiedCookie("");
+            setState("idle");
+            setMessage("");
+          }}
+          placeholder="apptlynir_session=..."
+          autoComplete="off"
+          spellCheck={false}
+          maxLength={12_000}
+        />
+        <p className={`session-message ${state}`}>{message || "ابتدا اتصال را تست کنید؛ سپس ذخیره فعال می‌شود."}</p>
+        <div className="session-actions">
+          <button type="button" className="secondary" onClick={close}>انصراف</button>
+          <button type="button" className="secondary" disabled={state === "testing" || state === "saving"} onClick={() => void request("test")}>
+            {state === "testing" ? "در حال تست…" : "تست اتصال"}
+          </button>
+          <button type="button" className="primary" disabled={verifiedCookie !== cookie.trim() || state === "saving"} onClick={() => void request("save")}>
+            {state === "saving" ? "در حال ذخیره…" : "تأیید و ذخیره"}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function Header({ snapshot, onOpenSession }: { snapshot: MarketSnapshot; onOpenSession: () => void }) {
   const metrics = [
     { label: "بیشترین ۲۴ ساعت", value: toman(snapshot.high24h) },
     { label: "کمترین ۲۴ ساعت", value: toman(snapshot.low24h) },
@@ -310,7 +415,9 @@ function Header({ snapshot }: { snapshot: MarketSnapshot }) {
   return (
     <header className="market-header">
       <section className="identity">
-        <Image src="/taline-logo.png" alt="لوگوی طلاین" width={43} height={43} priority />
+        <button className="identity-trigger" type="button" onClick={onOpenSession} aria-label="تنظیم اتصال داده">
+          <Image src="/taline-logo.png" alt="لوگوی طلاین" width={43} height={43} priority />
+        </button>
         <div><strong>طلاین</strong><span>طلای ۱۸ عیار</span><small dir="ltr">XAU18 / IRT · SPOT</small></div>
       </section>
       <section className="headline-price">
@@ -331,13 +438,15 @@ function Header({ snapshot }: { snapshot: MarketSnapshot }) {
 function MarketWall() {
   const snapshot = useMarketData();
   const [timeframe, setTimeframe] = useState<ChartTimeframe>("4h");
+  const [sessionOpen, setSessionOpen] = useState(false);
   return (
     <main className="stage" dir="rtl">
-      <Header snapshot={snapshot} />
+      <Header snapshot={snapshot} onOpenSession={() => setSessionOpen(true)} />
       <section className="workspace">
         <MarketChart snapshot={snapshot} timeframe={timeframe} onTimeframeChange={setTimeframe} />
         <OrderBook snapshot={snapshot} />
       </section>
+      <SessionDialog open={sessionOpen} onClose={() => setSessionOpen(false)} />
     </main>
   );
 }
