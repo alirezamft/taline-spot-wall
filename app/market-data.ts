@@ -71,6 +71,7 @@ interface NormalizedStats {
 
 const ORDERBOOK_API = "/api/orderbook";
 const PRICE_API = "/api/market-price";
+const SNAPSHOT_CACHE_KEY = "tlyn-last-real-market-snapshot";
 export const DEFAULT_POLL_INTERVAL_MS = 5_000;
 const REQUEST_TIMEOUT_MS = 4_500;
 const PRICE_MULTIPLIER = 10_000;
@@ -152,6 +153,40 @@ export function initialSnapshot(): MarketSnapshot {
   };
 }
 
+function isCachedLevel(value: unknown): value is OrderLevel {
+  if (!value || typeof value !== "object") return false;
+  const level = value as Partial<OrderLevel>;
+  return [level.price, level.amount, level.orderCount, level.revision].every((item) => typeof item === "number" && Number.isFinite(item))
+    && (level.motion === "steady" || level.motion === "volume" || level.motion === "reprice");
+}
+
+function readCachedSnapshot() {
+  try {
+    const raw = window.sessionStorage.getItem(SNAPSHOT_CACHE_KEY);
+    if (!raw) return null;
+    const cached = JSON.parse(raw) as Partial<MarketSnapshot>;
+    if (!Array.isArray(cached.bids) || !cached.bids.every(isCachedLevel) || !Array.isArray(cached.asks) || !cached.asks.every(isCachedLevel)) return null;
+    if (cached.lastSuccessfulFetchAt === null || typeof cached.lastSuccessfulFetchAt !== "number") return null;
+    return {
+      ...initialSnapshot(),
+      ...cached,
+      health: "stale" as const,
+      lastMove: "neutral" as const,
+      updatedAt: Date.now(),
+    } satisfies MarketSnapshot;
+  } catch {
+    return null;
+  }
+}
+
+function cacheSnapshot(snapshot: MarketSnapshot) {
+  try {
+    window.sessionStorage.setItem(SNAPSHOT_CACHE_KEY, JSON.stringify(snapshot));
+  } catch {
+    // A real in-memory snapshot remains authoritative when browser storage is unavailable.
+  }
+}
+
 export function reduceMarketResponse(
   previous: MarketSnapshot,
   bookPayload: RawOrderbookPayload | null,
@@ -230,10 +265,13 @@ export class TlynMarketDataProvider implements MarketDataProvider {
 
   subscribe(listener: (snapshot: MarketSnapshot) => void) {
     this.listeners.add(listener);
-    listener(this.snapshot);
     if (this.listeners.size === 1) {
+      this.snapshot = readCachedSnapshot() ?? this.snapshot;
+      listener(this.snapshot);
       window.addEventListener("tlyn-session-updated", this.sessionListener);
       void this.refresh();
+    } else {
+      listener(this.snapshot);
     }
     return () => {
       this.listeners.delete(listener);
@@ -288,6 +326,7 @@ export class TlynMarketDataProvider implements MarketDataProvider {
         now,
         [401, 403, 503].includes(failureStatus),
       );
+      if (this.snapshot.lastSuccessfulFetchAt === now) cacheSnapshot(this.snapshot);
       this.notify();
     } catch {
       if (!controller.signal.aborted && requestId === this.requestSequence) {

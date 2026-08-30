@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { clampCandleWicks, HOURLY_MAX_WICK_RATIO, HOURLY_MAX_WICK_TO_BODY, rialToToman, withLiveClose, type CandleShape } from "./candle-cleaner";
+import { clampNaturalCandleWicks, rialToToman, withNaturalLiveClose, type CandleShape } from "./candle-cleaner";
 
 type ResolutionMap = Record<string, number>;
 type Bar = CandleShape;
@@ -30,6 +30,7 @@ const DEFAULT_RESOLUTION_SECONDS: ResolutionMap = {
   "15": 15 * 60,
   "30": 30 * 60,
   "60": 60 * 60,
+  "240": 4 * 60 * 60,
   D: 24 * 60 * 60,
   W: 7 * 24 * 60 * 60,
   M: 30 * 24 * 60 * 60,
@@ -53,6 +54,7 @@ const DARK_CHART_OVERRIDES = {
   "mainSeriesProperties.candleStyle.wickDownColor": "#f04461",
   "mainSeriesProperties.candleStyle.drawWick": true,
   "mainSeriesProperties.candleStyle.drawBorder": true,
+  "symbolWatermarkProperties.visibility": false,
 };
 const LIGHT_CHART_OVERRIDES = {
   ...DARK_CHART_OVERRIDES,
@@ -138,17 +140,10 @@ function isOpenCandle(bar: Bar, resolution: string, resolutionSeconds: Resolutio
   return Date.now() / 1_000 < start + duration;
 }
 
-function wickPolicy(resolution: string) {
-  return normalizeResolution(resolution) === "60"
-    ? { ratio: HOURLY_MAX_WICK_RATIO, bodyRatio: HOURLY_MAX_WICK_TO_BODY }
-    : { ratio: undefined, bodyRatio: undefined };
-}
-
 function liveBar(bar: Bar, price: number | null, resolution: string, resolutionSeconds: ResolutionMap) {
-  const policy = wickPolicy(resolution);
   return price !== null && Number.isFinite(price) && price > 0 && isOpenCandle(bar, resolution, resolutionSeconds)
-    ? withLiveClose(bar, price, policy.ratio, policy.bodyRatio)
-    : bar;
+    ? withNaturalLiveClose(bar, price)
+    : clampNaturalCandleWicks(bar);
 }
 
 function validColumnarPayload(payload: unknown) {
@@ -184,15 +179,14 @@ async function fetchBars(fromSeconds: number, toSeconds: number, resolution: str
   const lows = data.l as number[];
   const closes = data.c as number[];
   const volumes = Array.isArray(data.v) ? data.v as number[] : null;
-  const policy = wickPolicy(normalized);
-  const bars = times.map((time, index) => clampCandleWicks({
+  const bars = times.map((time, index) => clampNaturalCandleWicks({
     time: toChartTime(Number(time), normalized) * 1_000,
     open: rialToToman(Number(opens[index])),
     high: rialToToman(Number(highs[index])),
     low: rialToToman(Number(lows[index])),
     close: rialToToman(Number(closes[index])),
     ...(volumes && Number.isFinite(Number(volumes[index])) ? { volume: Number(volumes[index]) } : {}),
-  }, policy.ratio, policy.bodyRatio));
+  }));
   if (bars.some((bar) => ![bar.time, bar.open, bar.high, bar.low, bar.close].every(Number.isFinite))) {
     throw new Error("invalid candle values");
   }
@@ -230,7 +224,9 @@ function installExternalDatafeed(widget: Widget, resolutionSeconds: ResolutionMa
         const name = String(body.symbolName ?? "GOLD18IRT");
         return { requestId, result: {
           name,
+          full_name: "Taline",
           ticker: name,
+          short_name: "Taline",
           description: "گرم طلای ۱۸ عیار / تومان",
           type: "commodity",
           session: "24x7",
@@ -361,7 +357,7 @@ function installExternalDatafeed(widget: Widget, resolutionSeconds: ResolutionMa
   };
 }
 
-export function BitycleChart({ interval, lastPrice, theme }: { interval: "15" | "60" | "D"; lastPrice: number | null; theme: ChartTheme }) {
+export function BitycleChart({ interval, lastPrice, theme }: { interval: "15" | "240" | "D"; lastPrice: number | null; theme: ChartTheme }) {
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const datafeedRef = useRef<DatafeedController | null>(null);
   const lastPriceRef = useRef(lastPrice);
@@ -413,7 +409,7 @@ export function BitycleChart({ interval, lastPrice, theme }: { interval: "15" | 
         datafeed_type: "external",
         symbol: "GOLD18IRT",
         source_priority: [],
-        interval,
+        interval: interval === "D" ? "1D" : interval,
         disabled_features: [
           "header_widget",
           "left_toolbar",
@@ -421,6 +417,7 @@ export function BitycleChart({ interval, lastPrice, theme }: { interval: "15" | 
           "control_bar",
           "timeframes_toolbar",
           "legend_widget",
+          "widget_logo",
           "context_menus",
           "show_exchange",
           "order_panel",

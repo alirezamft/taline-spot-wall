@@ -5,16 +5,16 @@ import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties }
 import { BitycleChart, type ChartTheme } from "./bitycle-chart";
 import { TlynMarketDataProvider, type MarketHealth, type MarketSnapshot, type OrderLevel } from "./market-data";
 
-type ChartTimeframe = "1h" | "1d";
+type ChartTimeframe = "4h" | "1d";
 type SessionDialogState = "idle" | "testing" | "verified" | "saving" | "saved" | "error";
-type OrderbookMotionMode = "row-flash" | "depth-replay" | "depth-random";
+type OrderbookMotionMode = "row-flash" | "depth-replay" | "freeze-replay";
 type OrderbookMotionSpeed = "slow" | "normal" | "fast";
 type NumberMotionMode = "off" | "count" | "type";
 
 const faInteger = new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 0 });
 const faAmount = new Intl.NumberFormat("fa-IR", { minimumFractionDigits: 2, maximumFractionDigits: 3 });
-const timeframeLabels: Record<ChartTimeframe, string> = { "1h": "۱ ساعت", "1d": "۱ روز" };
-const bitycleIntervals: Record<ChartTimeframe, "60" | "D"> = { "1h": "60", "1d": "D" };
+const timeframeLabels: Record<ChartTimeframe, string> = { "4h": "۴ ساعت", "1d": "۱ روز" };
+const bitycleIntervals: Record<ChartTimeframe, "240" | "D"> = { "4h": "240", "1d": "D" };
 const MOTION_STORAGE_KEY = "tlyn-orderbook-motion";
 const MOTION_SPEED_STORAGE_KEY = "tlyn-orderbook-motion-speed";
 const NUMBER_MOTION_STORAGE_KEY = "tlyn-orderbook-number-motion";
@@ -28,18 +28,19 @@ const MOTION_EVENT = "tlyn-orderbook-motion-changed";
 const STAGE_WIDTH = 1_344;
 const STAGE_HEIGHT = 576;
 const MAX_RESPONSIVE_STAGE_HEIGHT = 806;
+const PAGE_RELOAD_INTERVAL_MS = 10 * 60 * 1_000;
 const motionProfiles = {
-  slow: { cycle: 9_500, step: 360, depthDuration: 980, randomBase: 1_300, randomRange: 1_501 },
-  normal: { cycle: 7_500, step: 280, depthDuration: 820, randomBase: 900, randomRange: 1_301 },
-  fast: { cycle: 5_700, step: 210, depthDuration: 680, randomBase: 650, randomRange: 951 },
-} satisfies Record<OrderbookMotionSpeed, { cycle: number; step: number; depthDuration: number; randomBase: number; randomRange: number }>;
+  slow: { step: 390, depthDuration: 1_000 },
+  normal: { step: 300, depthDuration: 840 },
+  fast: { step: 220, depthDuration: 700 },
+} satisfies Record<OrderbookMotionSpeed, { step: number; depthDuration: number }>;
 
-const toman = (value: number | null) => value === null ? "—" : faInteger.format(value / 10);
-const amount = (value: number) => faAmount.format(value);
+const toman = (value: number | null) => value === null || !Number.isFinite(value) ? "—" : faInteger.format(value / 10);
+const amount = (value: number) => Number.isFinite(value) ? faAmount.format(value) : "—";
 
 function readMotionMode(): OrderbookMotionMode {
   const saved = window.localStorage.getItem(MOTION_STORAGE_KEY);
-  return saved === "depth-replay" || saved === "depth-random" ? saved : "row-flash";
+  return saved === "depth-replay" || saved === "freeze-replay" ? saved : "row-flash";
 }
 
 function readMotionSpeed(): OrderbookMotionSpeed {
@@ -73,15 +74,6 @@ function readSpotTheme(): ChartTheme {
 function readDisplayHeight() {
   const saved = Number(window.localStorage.getItem(DISPLAY_HEIGHT_STORAGE_KEY));
   return Number.isFinite(saved) && saved >= 50 && saved <= 120 ? saved : 100;
-}
-
-function nextRandomPulse(rowCount: number, previousRow: number) {
-  const entropy = new Uint32Array(2);
-  window.crypto.getRandomValues(entropy);
-  const candidate = rowCount > 1 && entropy[0] % rowCount === previousRow
-    ? (previousRow + 1 + (entropy[0] % (rowCount - 1))) % rowCount
-    : entropy[0] % Math.max(1, rowCount);
-  return { row: candidate, wait: 900 + (entropy[1] % 1_301) };
 }
 
 function subscribeMotionMode(listener: () => void) {
@@ -162,7 +154,7 @@ function MarketChart({ timeframe, lastPrice, theme, onTimeframeChange }: { timef
       <div className="chart-toolbar">
         <div className="chart-title"><b>نمودار طلای ۱۸ عیار</b></div>
         <div className="ranges" aria-label="انتخاب بازه کندل">
-          {(["1d", "1h"] as ChartTimeframe[]).map((value) => (
+          {(["1d", "4h"] as ChartTimeframe[]).map((value) => (
             <button type="button" className={timeframe === value ? "active" : ""} onClick={() => onTimeframeChange(value)} key={value}>
               {timeframeLabels[value]}
             </button>
@@ -212,7 +204,7 @@ function BookValue({ value, className, format, motion, direction, trigger, delay
   return <span key={`${motion}-${trigger}`} ref={elementRef} className={`${className}${motion === "type" ? " book-type-motion" : motion === "count" ? " book-count-motion" : ""}`} aria-label={formatted}>{formatted}</span>;
 }
 
-function PairedOrderRows({ bids, asks, refreshSequence, replaySequence, randomRow, motionMode, motionSpeed, numberMotion, priceFlash, wide }: { bids: OrderLevel[]; asks: OrderLevel[]; refreshSequence: number; replaySequence: number; randomRow: number; motionMode: OrderbookMotionMode; motionSpeed: OrderbookMotionSpeed; numberMotion: NumberMotionMode; priceFlash: boolean; wide: boolean }) {
+function PairedOrderRows({ bids, asks, replaySequence, motionMode, motionSpeed, numberMotion, priceFlash, wide }: { bids: OrderLevel[]; asks: OrderLevel[]; replaySequence: number; motionMode: OrderbookMotionMode; motionSpeed: OrderbookMotionSpeed; numberMotion: NumberMotionMode; priceFlash: boolean; wide: boolean }) {
   const bidMax = bids.length ? Math.max(...bids.map((row) => row.amount)) : 0;
   const askMax = asks.length ? Math.max(...asks.map((row) => row.amount)) : 0;
   const rowCount = Math.max(bids.length, asks.length);
@@ -224,9 +216,7 @@ function PairedOrderRows({ bids, asks, refreshSequence, replaySequence, randomRo
     const sellDepth = ask && askMax > 0 ? ask.amount / askMax : 0;
     const buyDepth = bid && bidMax > 0 ? bid.amount / bidMax : 0;
     const rowMotion = ask?.motion === "reprice" || bid?.motion === "reprice" ? "row-reprice" : "row-volume";
-    const animationDelay = motionMode === "row-flash"
-      ? index * Math.round(profile.step * 0.72)
-      : motionMode === "depth-random" ? 0 : index * profile.step;
+    const animationDelay = index * (motionMode === "row-flash" ? Math.round(profile.step * 0.72) : profile.step);
     const depthStyle = {
       "--sell-depth": String(sellDepth),
       "--buy-depth": String(buyDepth),
@@ -234,15 +224,15 @@ function PairedOrderRows({ bids, asks, refreshSequence, replaySequence, randomRo
       "--depth-duration": `${profile.depthDuration}ms`,
     } as CSSProperties;
     const revision = Math.max(ask?.revision ?? 0, bid?.revision ?? 0);
-    const activeNumberMotion = motionMode === "depth-replay" ? numberMotion : "off";
+    const activeNumberMotion = numberMotion;
     const refreshClass = motionMode === "row-flash"
-      ? `row-flash-mode refresh-${refreshSequence % 2}`
-      : motionMode === "depth-random"
-        ? index === randomRow ? `depth-replay-mode replay-${replaySequence % 2}` : ""
-        : `depth-replay-mode replay-${replaySequence % 2}`;
+      ? `row-flash-mode motion-cycle cycle-${replaySequence % 2}`
+      : motionMode === "freeze-replay"
+        ? `freeze-replay-mode depth-replay-mode motion-cycle cycle-${replaySequence % 2}`
+        : `depth-replay-mode motion-cycle cycle-${replaySequence % 2}`;
     return (
       <div
-        className={`book-paired-row ${rowMotion} revision-${revision % 2} ${refreshClass}${motionMode === "depth-replay" && priceFlash ? " price-flash-on" : ""}`}
+        className={`book-paired-row ${rowMotion} revision-${revision % 2} ${refreshClass}${priceFlash ? " price-flash-on" : ""}`}
         key={`${ask?.price ?? "sell-empty"}:${bid?.price ?? "buy-empty"}`}
         style={depthStyle}
         {...(bid ? { "data-bid-price": bid.price, "data-bid-amount": bid.amount } : {})}
@@ -268,28 +258,21 @@ function PairedOrderRows({ bids, asks, refreshSequence, replaySequence, randomRo
 
 function OrderBook({ snapshot, motionMode, motionSpeed, numberMotion, priceFlash, refreshSeconds, wide }: { snapshot: MarketSnapshot; motionMode: OrderbookMotionMode; motionSpeed: OrderbookMotionSpeed; numberMotion: NumberMotionMode; priceFlash: boolean; refreshSeconds: number; wide: boolean }) {
   const [replaySequence, setReplaySequence] = useState(0);
-  const [randomRow, setRandomRow] = useState(-1);
-  const previousRandomRow = useRef(-1);
   const rowCount = Math.max(snapshot.bids.length, snapshot.asks.length);
   const profile = motionProfiles[motionSpeed];
   useEffect(() => {
-    if (motionMode === "row-flash" || rowCount === 0) return;
-    if (motionMode === "depth-replay") {
-      const timer = window.setInterval(() => setReplaySequence((value) => value + 1), refreshSeconds * 1_000);
-      return () => window.clearInterval(timer);
-    }
-    let timer: number;
-    const pulseOneRow = () => {
-      const pulse = nextRandomPulse(rowCount, previousRandomRow.current);
-      previousRandomRow.current = pulse.row;
-      setRandomRow(pulse.row);
+    if (rowCount === 0) return;
+    const rowStep = motionMode === "row-flash" ? Math.round(profile.step * 0.72) : profile.step;
+    const fullCycleDuration = (rowCount - 1) * rowStep + profile.depthDuration + 450;
+    const cycleInterval = Math.max(refreshSeconds * 1_000, fullCycleDuration);
+    let timer = 0;
+    const playCompleteCycle = () => {
       setReplaySequence((value) => value + 1);
-      const scaledWait = profile.randomBase + Math.round((pulse.wait - 900) * (profile.randomRange / 1_301));
-      timer = window.setTimeout(pulseOneRow, scaledWait);
+      timer = window.setTimeout(playCompleteCycle, cycleInterval);
     };
-    timer = window.setTimeout(pulseOneRow, 650);
+    timer = window.setTimeout(playCompleteCycle, 350);
     return () => window.clearTimeout(timer);
-  }, [motionMode, profile, refreshSeconds, rowCount]);
+  }, [motionMode, profile.depthDuration, profile.step, refreshSeconds, rowCount]);
   const bidVolume = snapshot.bids.reduce((sum, level) => sum + level.amount, 0);
   const askVolume = snapshot.asks.reduce((sum, level) => sum + level.amount, 0);
   const totalVolume = bidVolume + askVolume;
@@ -298,6 +281,7 @@ function OrderBook({ snapshot, motionMode, motionSpeed, numberMotion, priceFlash
   return (
     <aside
       className={`orderbook-card${wide ? " wide" : ""}`}
+      style={{ "--book-row-count": String(Math.max(1, rowCount)) } as CSSProperties}
       aria-label="دفتر سفارش‌های بازار"
       data-last-price={snapshot.lastPrice ?? undefined}
       data-best-bid={snapshot.bestBid ?? undefined}
@@ -306,13 +290,13 @@ function OrderBook({ snapshot, motionMode, motionSpeed, numberMotion, priceFlash
     >
       <div className="book-heading">
         <div><b>دفتر سفارش‌ها</b><span>عمق بازار</span></div>
-        {buyShare !== null && <div className="book-balance" aria-label="تعادل سفارش‌ها">
-          <span className="buy-share">خرید {faInteger.format(buyShare)}٪</span>
-          <span className="sell-share">فروش {faInteger.format(100 - buyShare)}٪</span>
+        {buyShare !== null && <div className="book-balance" aria-label="تعادل حجم سفارش‌ها">
+          <div><b>تعادل حجم سفارش‌ها</b><span className="buy-share">خرید {faInteger.format(buyShare)}٪</span><span className="sell-share">فروش {faInteger.format(100 - buyShare)}٪</span></div>
+          <div className="balance-track" aria-hidden="true"><i className="balance-buy" style={{ width: `${buyShare}%` }} /><i className="balance-sell" style={{ width: `${100 - buyShare}%` }} /></div>
         </div>}
       </div>
       <div className={`book-center ${snapshot.lastMove}`}>
-        <div><b>{toman(snapshot.lastPrice)}</b><span>آخرین قیمت</span></div>
+        <div><b>{toman(snapshot.lastPrice)}</b><span>آخرین معامله</span></div>
         <div><strong>{toman(snapshot.spread)}</strong><span>اختلاف بهترین قیمت خرید و فروش</span></div>
       </div>
       <div className="book-head paired-head">
@@ -320,7 +304,7 @@ function OrderBook({ snapshot, motionMode, motionSpeed, numberMotion, priceFlash
       </div>
       {snapshot.bids.length === 0 && snapshot.asks.length === 0
         ? <div className="book-empty">{snapshot.health === "session-required" ? "برای دریافت بازار، اتصال را از لوگوی طلاین تنظیم کنید" : "در حال دریافت دفتر سفارش‌ها…"}</div>
-        : <PairedOrderRows bids={snapshot.bids} asks={snapshot.asks} refreshSequence={snapshot.refreshSequence} replaySequence={replaySequence} randomRow={randomRow} motionMode={motionMode} motionSpeed={motionSpeed} numberMotion={numberMotion} priceFlash={priceFlash} wide={wide} />}
+        : <div className="book-rows"><PairedOrderRows bids={snapshot.bids} asks={snapshot.asks} replaySequence={replaySequence} motionMode={motionMode} motionSpeed={motionSpeed} numberMotion={numberMotion} priceFlash={priceFlash} wide={wide} /></div>}
     </aside>
   );
 }
@@ -452,14 +436,14 @@ function SessionDialog({ open, motionMode, motionSpeed, numberMotion, priceFlash
             <input id="motion-depth-replay" type="radio" name="motion-mode" checked={motionMode === "depth-replay"} onChange={() => onMotionModeChange("depth-replay")} />
             <span><b>بازشدن عمق</b><small>بازشدن مرتب نوار عمق؛ موشن عدد و فلش قابل تنظیم است</small></span>
           </label>
-          <label htmlFor="motion-depth-random" aria-label="بازشدن تصادفی عمق">
-            <input id="motion-depth-random" type="radio" name="motion-mode" checked={motionMode === "depth-random"} onChange={() => onMotionModeChange("depth-random")} />
-            <span><b>عمق تصادفی</b><small>به‌روزرسانی پیوستهٔ یک ردیف با فاصلهٔ متغیر</small></span>
+          <label htmlFor="motion-freeze-replay" aria-label="فریز و بارگذاری ردیفی">
+            <input id="motion-freeze-replay" type="radio" name="motion-mode" checked={motionMode === "freeze-replay"} onChange={() => onMotionModeChange("freeze-replay")} />
+            <span><b>فریز و بارگذاری</b><small>کمرنگ‌شدن دفتر و فعال‌شدن ردیف‌ها از بالا به پایین</small></span>
           </label>
         </fieldset>
         <div className="motion-controls">
           <label className="speed-setting" htmlFor="number-motion">
-            <span>ورود قیمت و مقدار در حالت ۲</span>
+            <span>ورود قیمت و مقدار در همه حالت‌ها</span>
             <select id="number-motion" value={numberMotion} onChange={(event) => onNumberMotionChange(event.target.value as NumberMotionMode)}>
               <option value="off">بدون موشن</option>
               <option value="count">شمارنده تا عدد نهایی</option>
@@ -474,9 +458,9 @@ function SessionDialog({ open, motionMode, motionSpeed, numberMotion, priceFlash
               <option value="fast">سریع</option>
             </select>
           </label>
-          <label className="counter-setting" htmlFor="motion-price-flash" aria-label="فلش قیمت در حالت ۲">
+          <label className="counter-setting" htmlFor="motion-price-flash" aria-label="فلش قیمت هنگام به‌روزرسانی">
             <input id="motion-price-flash" type="checkbox" checked={priceFlash} onChange={(event) => onPriceFlashChange(event.target.checked)} />
-            <span><b>فلش قیمت در حالت ۲</b><small>روشن یا خاموش‌کردن تأکید رنگی قیمت هنگام لود</small></span>
+            <span><b>فلش قیمت</b><small>تأکید رنگی قیمت در هر سه حالت به‌روزرسانی</small></span>
           </label>
           <label className="speed-setting" htmlFor="refresh-seconds">
             <span>بازه دریافت و رفرش (ثانیه)</span>
@@ -531,7 +515,7 @@ function Header({ snapshot, onOpenSession }: { snapshot: MarketSnapshot; onOpenS
         <div><strong>طلاین</strong><small dir="ltr">GOLD18IRT · SPOT</small></div>
       </section>
       <section className="headline-price">
-        <span>آخرین قیمت <small>تومان</small></span>
+        <span>آخرین قیمت معامله در بازار پیشرفته <small>تومان</small></span>
         <strong className={`price-number ${priceTone}`}>{toman(snapshot.lastPrice)}</strong>
         <small className={`health-copy ${snapshot.health}`}>{healthText(snapshot.health)}</small>
       </section>
@@ -605,6 +589,10 @@ function MarketWall({ displayHeight }: { displayHeight: number }) {
 export default function Home() {
   const displayHeight = useDisplayHeight();
   const { scale, logicalHeight, viewportHeight } = useStageScale(displayHeight);
+  useEffect(() => {
+    const timer = window.setTimeout(() => window.location.reload(), PAGE_RELOAD_INTERVAL_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
   const scalerStyle = { transform: `scale(${scale})`, "--stage-height": `${logicalHeight}px` } as CSSProperties;
   return (
     <div className="stage-viewport" style={{ width: STAGE_WIDTH * scale, height: viewportHeight }}>

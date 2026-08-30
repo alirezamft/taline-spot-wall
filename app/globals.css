@@ -54,7 +54,8 @@
   --control-bg: #101318;
   --control-border: #252b34;
   --dialog-bg: #080a0d;
-  --row-refresh: rgba(255,255,255,.09);
+  --row-refresh: rgba(255,255,255,.14);
+  --row-freeze: rgba(117,124,135,.22);
   --sell-depth-start: rgba(240,68,97,.12);
   --sell-depth-end: rgba(240,68,97,.26);
   --buy-depth-start: rgba(32,214,160,.25);
@@ -79,7 +80,8 @@
   --control-bg: #f3f5f7;
   --control-border: #d2d8df;
   --dialog-bg: #fff;
-  --row-refresh: rgba(34,43,53,.08);
+  --row-refresh: rgba(25,35,46,.16);
+  --row-freeze: rgba(94,105,117,.18);
   --sell-depth-start: rgba(224,54,82,.06);
   --sell-depth-end: rgba(224,54,82,.15);
   --buy-depth-start: rgba(13,158,113,.15);
@@ -121,7 +123,7 @@ button { font: inherit; }
   height: var(--stage-height, 576px);
   padding: 10px;
   display: grid;
-  grid-template-rows: 72px minmax(0, 1fr);
+  grid-template-rows: 116px minmax(0, 1fr);
   gap: 8px;
   overflow: hidden;
   color: var(--text);
@@ -143,22 +145,22 @@ button { font: inherit; }
   overflow: hidden;
 }
 
-/* Compact market header */
-.market-header { display: flex; align-items: center; height: 72px; padding: 8px 10px; }
+/* Exhibition-scale market header */
+.market-header { display: flex; align-items: center; height: 116px; padding: 10px 12px; }
 .identity {
-  width: 174px;
-  height: 52px;
+  width: 202px;
+  height: 94px;
   flex: none;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding-left: 13px;
+  gap: 12px;
+  padding-left: 15px;
   border-left: 1px solid var(--line);
 }
-.identity img { width: 43px; height: 43px; flex: none; object-fit: contain; }
+.identity img { width: 70px; height: 70px; flex: none; object-fit: contain; }
 .identity-trigger {
-  width: 43px;
-  height: 43px;
+  width: 70px;
+  height: 70px;
   flex: none;
   padding: 0;
   border: 0;
@@ -167,53 +169,53 @@ button { font: inherit; }
   cursor: pointer;
 }
 .identity-trigger:focus-visible { outline: 1px solid var(--gold); outline-offset: 3px; }
-.identity > div { min-width: 0; display: grid; align-content: center; gap: 6px; }
-.identity strong { font-size: 17px; font-weight: 800; line-height: 18px; }
-.identity small { color: var(--muted-2); font-size: 6.5px; letter-spacing: .8px; white-space: nowrap; }
+.identity > div { min-width: 0; display: grid; align-content: center; gap: 9px; }
+.identity strong { font-size: 25px; font-weight: 800; line-height: 26px; }
+.identity small { color: var(--muted-2); font-size: 8.5px; letter-spacing: .8px; white-space: nowrap; }
 .headline-price {
-  width: 172px;
-  height: 52px;
+  width: 232px;
+  height: 94px;
   flex: none;
-  padding: 0 14px;
+  padding: 0 16px;
   display: grid;
   align-content: center;
   gap: 1px;
   border-left: 1px solid var(--line);
 }
-.headline-price > span, .metric span { color: var(--muted); font-size: 7.5px; }
-.headline-price > span small { color: var(--muted-2); font-size: 6.5px; }
+.headline-price > span, .metric span { color: var(--muted); font-size: 10px; line-height: 1.25; }
+.headline-price > span small { color: var(--muted-2); font-size: 8px; }
 .headline-price .price-number {
   direction: ltr;
   text-align: right;
   display: inline-block;
   width: fit-content;
-  font-size: 18px;
-  line-height: 22px;
+  font-size: 32px;
+  line-height: 36px;
   font-weight: 800;
   letter-spacing: -.15px;
   font-variant-numeric: tabular-nums;
   transition: color 200ms ease;
 }
-.headline-price > small { font-size: 7px; }
+.headline-price > small { font-size: 8.5px; }
 .health-copy.live { color: var(--green); }
 .health-copy.stale, .health-copy.session-required { color: var(--red); }
 .metric {
   min-width: 0;
   flex: 1;
-  height: 42px;
-  padding: 0 9px;
+  height: 82px;
+  padding: 0 10px;
   display: grid;
   align-content: center;
-  gap: 6px;
+  gap: 10px;
   border-left: 1px solid var(--line);
 }
 .metric:last-child { border-left: 0; }
 .metric strong {
   direction: ltr;
   text-align: right;
-  font-size: 10.5px;
-  line-height: 12px;
-  font-weight: 600;
+  font-size: 14px;
+  line-height: 16px;
+  font-weight: 700;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -224,7 +226,7 @@ button { font: inherit; }
 .workspace {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 252px;
+  grid-template-columns: minmax(0, 1fr) 278px;
   gap: 8px;
   direction: ltr;
 }
@@ -240,7 +242,7 @@ button { font: inherit; }
   background: var(--toolbar-bg);
 }
 .chart-title { display: flex; align-items: center; }
-.chart-title b { color: var(--text); font-size: 10px; font-weight: 700; }
+.chart-title b { color: var(--text); font-size: 12px; font-weight: 700; }
 .ranges { display: flex; gap: 2px; direction: rtl; }
 .ranges button {
   min-width: 50px;
@@ -250,7 +252,7 @@ button { font: inherit; }
   border-radius: 4px;
   color: var(--muted);
   background: transparent;
-  font-size: 7.5px;
+  font-size: 9px;
   cursor: pointer;
   transition: color .2s, background .2s, border-color .2s;
 }
@@ -272,20 +274,33 @@ button { font: inherit; }
 .chart-state.error { color: #9b626b; }
 
 /* API-sized paired orderbook */
-.orderbook-card { min-height: 0; direction: rtl; background: var(--order-bg); }
+.orderbook-card {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 58px 54px 30px minmax(0, 1fr);
+  direction: rtl;
+  background: var(--order-bg);
+}
 .book-heading {
-  height: 46px;
-  padding: 7px 10px;
+  height: 58px;
+  padding: 8px 11px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
   background: var(--toolbar-bg);
 }
-.book-heading > div:first-child { display: grid; gap: 1px; }
-.book-heading b { font-size: 13px; font-weight: 800; }
-.book-heading > div:first-child span { color: var(--muted); font-size: 7px; }
-.book-balance { display: flex; gap: 7px; font-size: 7px; }
+.book-heading > div:first-child { display: grid; gap: 3px; }
+.book-heading b { font-size: 15px; font-weight: 800; }
+.book-heading > div:first-child span { color: var(--muted); font-size: 8.5px; }
+.book-balance { width: 158px; display: grid; gap: 6px; }
+.book-balance > div:first-child { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 6px; }
+.book-balance > div:first-child b { color: var(--muted); font-size: 8px; font-weight: 600; white-space: nowrap; }
+.book-balance > div:first-child span { font-size: 8.5px; font-weight: 700; white-space: nowrap; }
+.balance-track { height: 5px; display: flex; overflow: hidden; border-radius: 999px; background: var(--line-soft); direction: ltr; }
+.balance-track i { display: block; height: 100%; transition: width .7s cubic-bezier(.2,.72,.22,1); }
+.balance-buy { background: var(--green); }
+.balance-sell { background: var(--red); }
 .buy-share { color: var(--green); }
 .sell-share { color: var(--red); }
 .book-head {
@@ -294,26 +309,32 @@ button { font: inherit; }
   padding: 0 9px;
 }
 .paired-head {
-  height: 25px;
+  height: 30px;
   grid-template-columns: .92fr 1.08fr 1.08fr .92fr;
   direction: ltr;
   color: var(--muted);
-  font-size: 7.8px;
+  font-size: 9px;
   font-weight: 600;
   border-bottom: 1px solid var(--line-soft);
 }
 .orderbook-card.wide .paired-head,
 .orderbook-card.wide .book-paired-row { grid-template-columns: .82fr 1.22fr 1.18fr 1.18fr 1.22fr .82fr; }
-.orderbook-card.wide .paired-head { font-size: 8.5px; }
-.orderbook-card.wide .book-paired-row { font-size: 10px; }
-.orderbook-card.wide .book-paired-row .paired-price { font-size: 12px; }
+.orderbook-card.wide .paired-head { font-size: 10px; }
+.orderbook-card.wide .book-paired-row { font-size: 11.5px; }
+.orderbook-card.wide .book-paired-row .paired-price { font-size: 14px; }
 .paired-head span { text-align: center; white-space: nowrap; }
 .paired-head .sell-price { color: var(--red); }
 .paired-head .buy-price { color: var(--green); }
+.book-rows {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: repeat(var(--book-row-count, 15), minmax(0, 1fr));
+  overflow: hidden;
+}
 .book-paired-row {
   position: relative;
   isolation: isolate;
-  height: 23px;
+  min-height: 0;
   display: grid;
   grid-template-columns: .92fr 1.08fr 1.08fr .92fr;
   align-items: center;
@@ -321,21 +342,21 @@ button { font: inherit; }
   direction: ltr;
   overflow: hidden;
   color: #c5cad1;
-  font-size: 9.7px;
+  font-size: 11.3px;
   font-variant-numeric: tabular-nums;
 }
 .book-paired-row span {
   position: relative;
   z-index: 1;
-  line-height: 23px;
+  line-height: 1.15;
   white-space: nowrap;
   text-align: center;
 }
-.book-paired-row .paired-price { font-size: 11.4px; font-weight: 700; }
+.book-paired-row .paired-price { font-size: 13.6px; font-weight: 700; }
 .book-paired-row .sell-price { color: var(--red); }
 .book-paired-row .buy-price { color: var(--green); }
 .book-paired-row .paired-amount { color: var(--text); font-weight: 600; }
-.book-paired-row .paired-total { color: var(--muted); font-size: 9.2px; font-weight: 500; }
+.book-paired-row .paired-total { color: var(--muted); font-size: 10px; font-weight: 500; }
 .book-paired-row .paired-depth {
   position: absolute;
   z-index: 0;
@@ -354,8 +375,8 @@ button { font: inherit; }
   background: var(--row-refresh);
   opacity: 0;
 }
-.book-paired-row.row-flash-mode.refresh-0 .row-refresh { animation: rowRefreshEven 520ms ease-out var(--refresh-delay) both; }
-.book-paired-row.row-flash-mode.refresh-1 .row-refresh { animation: rowRefreshOdd 520ms ease-out var(--refresh-delay) both; }
+.book-paired-row.row-flash-mode.cycle-0 .row-refresh { animation: rowRefreshEven 620ms ease-out var(--refresh-delay) both; }
+.book-paired-row.row-flash-mode.cycle-1 .row-refresh { animation: rowRefreshOdd 620ms ease-out var(--refresh-delay) both; }
 .book-paired-row .sell-depth {
   right: 50%;
   transform: scaleX(var(--sell-depth));
@@ -368,17 +389,19 @@ button { font: inherit; }
   transform-origin: left center;
   background: linear-gradient(90deg, var(--buy-depth-start), var(--buy-depth-end));
 }
-.book-paired-row.depth-replay-mode.replay-0 .sell-depth { animation: replaySellA var(--depth-duration) cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
-.book-paired-row.depth-replay-mode.replay-1 .sell-depth { animation: replaySellB var(--depth-duration) cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
-.book-paired-row.depth-replay-mode.replay-0 .buy-depth { animation: replayBuyA var(--depth-duration) cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
-.book-paired-row.depth-replay-mode.replay-1 .buy-depth { animation: replayBuyB var(--depth-duration) cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
-.book-paired-row.depth-replay-mode.price-flash-on.replay-0 .sell-price { animation: sellPriceRefreshA 500ms ease-out var(--refresh-delay) forwards; }
-.book-paired-row.depth-replay-mode.price-flash-on.replay-1 .sell-price { animation: sellPriceRefreshB 500ms ease-out var(--refresh-delay) forwards; }
-.book-paired-row.depth-replay-mode.price-flash-on.replay-0 .buy-price { animation: buyPriceRefreshA 500ms ease-out var(--refresh-delay) forwards; }
-.book-paired-row.depth-replay-mode.price-flash-on.replay-1 .buy-price { animation: buyPriceRefreshB 500ms ease-out var(--refresh-delay) forwards; }
-.book-paired-row.depth-replay-mode.replay-0 .book-type-motion { animation: bookTypeA 520ms steps(8, end) var(--refresh-delay) both; }
-.book-paired-row.depth-replay-mode.replay-1 .book-type-motion { animation: bookTypeB 520ms steps(8, end) var(--refresh-delay) both; }
-.book-paired-row.depth-replay-mode .book-count-motion { transition: color .18s ease; }
+.book-paired-row.depth-replay-mode.cycle-0 .sell-depth { animation: replaySellA var(--depth-duration) cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
+.book-paired-row.depth-replay-mode.cycle-1 .sell-depth { animation: replaySellB var(--depth-duration) cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
+.book-paired-row.depth-replay-mode.cycle-0 .buy-depth { animation: replayBuyA var(--depth-duration) cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
+.book-paired-row.depth-replay-mode.cycle-1 .buy-depth { animation: replayBuyB var(--depth-duration) cubic-bezier(.2,.72,.22,1) var(--refresh-delay) forwards; }
+.book-paired-row.motion-cycle.price-flash-on.cycle-0 .sell-price { animation: sellPriceRefreshA 520ms ease-out var(--refresh-delay) forwards; }
+.book-paired-row.motion-cycle.price-flash-on.cycle-1 .sell-price { animation: sellPriceRefreshB 520ms ease-out var(--refresh-delay) forwards; }
+.book-paired-row.motion-cycle.price-flash-on.cycle-0 .buy-price { animation: buyPriceRefreshA 520ms ease-out var(--refresh-delay) forwards; }
+.book-paired-row.motion-cycle.price-flash-on.cycle-1 .buy-price { animation: buyPriceRefreshB 520ms ease-out var(--refresh-delay) forwards; }
+.book-paired-row.motion-cycle.cycle-0 .book-type-motion { animation: bookTypeA 560ms steps(8, end) var(--refresh-delay) both; }
+.book-paired-row.motion-cycle.cycle-1 .book-type-motion { animation: bookTypeB 560ms steps(8, end) var(--refresh-delay) both; }
+.book-paired-row.motion-cycle .book-count-motion { transition: color .18s ease; }
+.book-paired-row.freeze-replay-mode.cycle-0 .row-refresh { animation: freezeRowA calc(var(--depth-duration) + 180ms) ease-out var(--refresh-delay) both; }
+.book-paired-row.freeze-replay-mode.cycle-1 .row-refresh { animation: freezeRowB calc(var(--depth-duration) + 180ms) ease-out var(--refresh-delay) both; }
 .book-paired-row.revision-0 .paired-depth { animation: depthChangeA .72s ease-out; }
 .book-paired-row.revision-1 .paired-depth { animation: depthChangeB .72s ease-out; }
 .book-paired-row.revision-0 .paired-amount,
@@ -387,7 +410,7 @@ button { font: inherit; }
 .book-paired-row.revision-1 .paired-price { animation: priceLevelChanged .46s ease-out; }
 .book-paired-row.row-reprice { animation: rowReposition .56s cubic-bezier(.2,.72,.22,1); }
 .book-center {
-  height: 46px;
+  height: 54px;
   margin: 0;
   padding: 5px 10px;
   display: flex;
@@ -402,8 +425,8 @@ button { font: inherit; }
   direction: ltr;
   display: inline-block;
   width: fit-content;
-  font-size: 14px;
-  line-height: 17px;
+  font-size: 18px;
+  line-height: 21px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   transition: color 200ms ease;
@@ -411,8 +434,8 @@ button { font: inherit; }
 .book-center.buy b { color: var(--green); }
 .book-center.sell b { color: var(--red); }
 .book-center.neutral b { color: var(--text); }
-.book-center strong { color: var(--text); direction: ltr; font-size: 8.5px; font-weight: 600; }
-.book-center span { color: var(--muted); font-size: 6px; }
+.book-center strong { color: var(--text); direction: ltr; font-size: 10px; font-weight: 700; }
+.book-center span { color: var(--muted); font-size: 7px; }
 .book-empty { display: grid; place-items: center; height: 120px; padding: 15px; color: var(--muted); font-size: 8px; text-align: center; }
 @keyframes depthChangeA { 0% { filter: brightness(1.35); } 100% { filter: none; } }
 @keyframes depthChangeB { 0% { filter: brightness(1.35); } 100% { filter: none; } }
@@ -435,6 +458,16 @@ button { font: inherit; }
 @keyframes rowRefreshOdd {
   0%, 100% { opacity: 0; }
   35% { opacity: 1; }
+}
+@keyframes freezeRowA {
+  0% { opacity: 1; background: var(--row-freeze); }
+  72% { opacity: .72; background: var(--row-freeze); }
+  100% { opacity: 0; }
+}
+@keyframes freezeRowB {
+  0% { opacity: 1; background: var(--row-freeze); }
+  72% { opacity: .72; background: var(--row-freeze); }
+  100% { opacity: 0; }
 }
 @keyframes replaySellA { 0% { transform: scaleX(0); opacity: .2; } 100% { transform: scaleX(var(--sell-depth)); opacity: 1; } }
 @keyframes replaySellB { 0% { transform: scaleX(0); opacity: .2; } 100% { transform: scaleX(var(--sell-depth)); opacity: 1; } }

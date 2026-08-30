@@ -17,6 +17,8 @@ test("keeps the existing Persian videowall and operator session control", async 
   assert.match(page, /const scale = window\.innerWidth \/ STAGE_WIDTH/);
   assert.match(page, /requestedHeight = window\.innerHeight \* \(heightPercent \/ 100\)/);
   assert.match(page, /Math\.min\(MAX_RESPONSIVE_STAGE_HEIGHT, requestedHeight \/ scale\)/);
+  assert.match(page, /PAGE_RELOAD_INTERVAL_MS = 10 \* 60 \* 1_000/);
+  assert.match(page, /window\.location\.reload\(\)/);
   assert.match(page, /طلاین/);
   assert.match(page, /دفتر سفارش‌ها/);
   assert.match(page, /انتخاب بازه کندل/);
@@ -60,6 +62,9 @@ test("uses only real order-book and market-stat data", async () => {
   assert.match(marketData, /stats\?\.low24h \?\? previous\.low24h/);
   assert.match(marketData, /refreshSequence: previous\.refreshSequence \+ 1/);
   assert.match(marketData, /health: stats \? "live" as const : "stale" as const/);
+  assert.match(marketData, /tlyn-last-real-market-snapshot/);
+  assert.match(marketData, /window\.sessionStorage\.getItem/);
+  assert.match(marketData, /health: "stale" as const/);
   assert.doesNotMatch(production, /Math\.random|stableAmount|supplemental|BOOK_LEVELS|LIVE_LEVELS|HISTORICAL_CANDLE_SEED|MockMarketDataProvider|createCandles|updateCandles/);
   assert.doesNotMatch(marketData, /setInterval/);
   assert.match(orderbookRoute, /https:\/\/my\.tlyn\.ir\/api\/v1\/orders\/data/);
@@ -69,18 +74,18 @@ test("uses only real order-book and market-stat data", async () => {
   assert.match(page, /ask\.amount \/ askMax/);
   assert.match(page, /bid\.amount \/ bidMax/);
   assert.match(page, /key=\{`\$\{ask\?\.price/);
-  assert.match(page, /normal: \{ cycle: 7_500, step: 280/);
-  assert.match(page, /"depth-random"/);
-  assert.match(page, /window\.crypto\.getRandomValues/);
-  assert.match(page, /wait: 900 \+ \(entropy\[1\] % 1_301\)/);
-  assert.match(page, /index === randomRow/);
-  assert.match(css, /rowRefreshEven 520ms ease-out var\(--refresh-delay\)/);
+  assert.match(page, /normal: \{ step: 300, depthDuration: 840 \}/);
+  assert.match(page, /"freeze-replay"/);
+  assert.doesNotMatch(page, /"depth-random"|nextRandomPulse|randomRow/);
+  assert.match(page, /Math\.max\(refreshSeconds \* 1_000, fullCycleDuration\)/);
+  assert.match(css, /rowRefreshEven 620ms ease-out var\(--refresh-delay\)/);
   assert.match(css, /transition: transform 880ms/);
   assert.match(css, /replaySellA var\(--depth-duration\)[^;]*forwards/);
   assert.match(css, /replayBuyA var\(--depth-duration\)[^;]*forwards/);
+  assert.match(css, /freezeRowA/);
   assert.match(page, /شمارنده تا عدد نهایی/);
   assert.match(page, /تایپ عدد نهایی/);
-  assert.match(page, /فلش قیمت در حالت ۲/);
+  assert.match(page, /فلش قیمت/);
   assert.match(page, /بازه دریافت و رفرش \(ثانیه\)/);
   assert.match(page, /سرعت اجرای ردیف‌ها/);
   assert.match(css, /bookTypeA/);
@@ -91,6 +96,8 @@ test("uses only real order-book and market-stat data", async () => {
   assert.match(page, /کل خرید/);
   assert.match(css, /scaleX\(var\(--sell-depth\)\)/);
   assert.match(css, /scaleX\(var\(--buy-depth\)\)/);
+  assert.match(css, /grid-template-rows: repeat\(var\(--book-row-count, 15\), minmax\(0, 1fr\)\)/);
+  assert.match(page, /--book-row-count/);
   assert.doesNotMatch(css, /numberShockUp|numberShockDown/);
 });
 
@@ -108,14 +115,15 @@ test("uses Bitycle with authenticated real candle data", async () => {
   assert.match(chart, /datafeed_type: "external"/);
   assert.match(chart, /chart_style: "Candle"/);
   assert.match(chart, /rialToToman/);
-  assert.match(chart, /wickPolicy/);
-  assert.match(chart, /HOURLY_MAX_WICK_TO_BODY/);
+  assert.match(chart, /clampNaturalCandleWicks/);
+  assert.match(chart, /withNaturalLiveClose/);
   assert.match(page, /lastPrice === null \? null : lastPrice \/ 10/);
   assert.match(chart, /symbol: "GOLD18IRT"/);
   assert.match(chart, /calendar_type: "shamsi"/);
   assert.match(chart, /"header_widget"/);
   assert.match(chart, /"left_toolbar"/);
   assert.match(chart, /"timeframes_toolbar"/);
+  assert.match(chart, /"widget_logo"/);
   assert.match(chart, /"use_localstorage_for_settings"/);
   assert.match(chart, /mainSeriesProperties\.candleStyle\.upColor/);
   assert.match(chart, /"color-palette"/);
@@ -138,6 +146,7 @@ test("uses Bitycle with authenticated real candle data", async () => {
   assert.match(candleRoute, /getMarketCookie/);
   assert.match(resolutionRoute, /"15": 15 \* 60/);
   assert.match(resolutionRoute, /"60": 60 \* 60/);
+  assert.match(resolutionRoute, /"240": 4 \* 60 \* 60/);
   assert.doesNotMatch(`${chart}\n${candleRoute}`, /Math\.random|fake|mock|seed/);
   await assert.rejects(access(new URL("../app/history-seed.ts", import.meta.url)));
   await assert.rejects(access(new URL("../app/api/history/route.ts", import.meta.url)));
@@ -155,6 +164,7 @@ test("keeps required assets and no obsolete starter surface", async () => {
   assert.match(page, /src="\/market-analysis\.html"/);
   assert.match(page, /نمودار طلای ۱۸ عیار/);
   assert.match(page, /useState<ChartTimeframe>\("1d"\)/);
+  assert.match(page, /"4h": "۴ ساعت"/);
   assert.match(page, /نمایش نمودار/);
   assert.match(page, /تم بخش اسپات/);
   assert.match(page, /ارتفاع نمایشگر \(درصد\)/);
