@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { clampCandleWicks, rialToToman, withLiveClose, type CandleShape } from "./candle-cleaner";
+import { clampCandleWicks, HOURLY_MAX_WICK_RATIO, HOURLY_MAX_WICK_TO_BODY, rialToToman, withLiveClose, type CandleShape } from "./candle-cleaner";
 
 type ResolutionMap = Record<string, number>;
 type Bar = CandleShape;
@@ -34,7 +34,9 @@ const DEFAULT_RESOLUTION_SECONDS: ResolutionMap = {
   W: 7 * 24 * 60 * 60,
   M: 30 * 24 * 60 * 60,
 };
-const CHART_OVERRIDES = {
+export type ChartTheme = "dark" | "light";
+
+const DARK_CHART_OVERRIDES = {
   "paneProperties.background": "#000000",
   "paneProperties.backgroundType": "solid",
   "paneProperties.vertGridProperties.color": "#111419",
@@ -52,6 +54,15 @@ const CHART_OVERRIDES = {
   "mainSeriesProperties.candleStyle.drawWick": true,
   "mainSeriesProperties.candleStyle.drawBorder": true,
 };
+const LIGHT_CHART_OVERRIDES = {
+  ...DARK_CHART_OVERRIDES,
+  "paneProperties.background": "#ffffff",
+  "paneProperties.vertGridProperties.color": "#edf0f3",
+  "paneProperties.horzGridProperties.color": "#edf0f3",
+  "scalesProperties.backgroundColor": "#ffffff",
+  "scalesProperties.lineColor": "#d6dce3",
+  "scalesProperties.textColor": "#68717e",
+};
 const CHART_PALETTE = {
   dark: {
     primary: "#20d6a0",
@@ -66,10 +77,14 @@ const CHART_PALETTE = {
     secondary: "#f04461",
     success: "#20d6a0",
     error: "#f04461",
-    text: "#727984",
-    background: "#000000",
+    text: "#68717e",
+    background: "#ffffff",
   },
 };
+
+function chartOverrides(theme: ChartTheme) {
+  return theme === "light" ? LIGHT_CHART_OVERRIDES : DARK_CHART_OVERRIDES;
+}
 
 function normalizeResolution(value: unknown) {
   const resolution = String(value ?? "D");
@@ -123,9 +138,16 @@ function isOpenCandle(bar: Bar, resolution: string, resolutionSeconds: Resolutio
   return Date.now() / 1_000 < start + duration;
 }
 
+function wickPolicy(resolution: string) {
+  return normalizeResolution(resolution) === "60"
+    ? { ratio: HOURLY_MAX_WICK_RATIO, bodyRatio: HOURLY_MAX_WICK_TO_BODY }
+    : { ratio: undefined, bodyRatio: undefined };
+}
+
 function liveBar(bar: Bar, price: number | null, resolution: string, resolutionSeconds: ResolutionMap) {
+  const policy = wickPolicy(resolution);
   return price !== null && Number.isFinite(price) && price > 0 && isOpenCandle(bar, resolution, resolutionSeconds)
-    ? withLiveClose(bar, price)
+    ? withLiveClose(bar, price, policy.ratio, policy.bodyRatio)
     : bar;
 }
 
@@ -162,6 +184,7 @@ async function fetchBars(fromSeconds: number, toSeconds: number, resolution: str
   const lows = data.l as number[];
   const closes = data.c as number[];
   const volumes = Array.isArray(data.v) ? data.v as number[] : null;
+  const policy = wickPolicy(normalized);
   const bars = times.map((time, index) => clampCandleWicks({
     time: toChartTime(Number(time), normalized) * 1_000,
     open: rialToToman(Number(opens[index])),
@@ -169,7 +192,7 @@ async function fetchBars(fromSeconds: number, toSeconds: number, resolution: str
     low: rialToToman(Number(lows[index])),
     close: rialToToman(Number(closes[index])),
     ...(volumes && Number.isFinite(Number(volumes[index])) ? { volume: Number(volumes[index]) } : {}),
-  }));
+  }, policy.ratio, policy.bodyRatio));
   if (bars.some((bar) => ![bar.time, bar.open, bar.high, bar.low, bar.close].every(Number.isFinite))) {
     throw new Error("invalid candle values");
   }
@@ -338,7 +361,7 @@ function installExternalDatafeed(widget: Widget, resolutionSeconds: ResolutionMa
   };
 }
 
-export function BitycleChart({ interval, lastPrice }: { interval: "15" | "60" | "D"; lastPrice: number | null }) {
+export function BitycleChart({ interval, lastPrice, theme }: { interval: "15" | "60" | "D"; lastPrice: number | null; theme: ChartTheme }) {
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const datafeedRef = useRef<DatafeedController | null>(null);
   const lastPriceRef = useRef(lastPrice);
@@ -380,10 +403,10 @@ export function BitycleChart({ interval, lastPrice }: { interval: "15" | "60" | 
       script.type = "text/javascript";
       script.textContent = JSON.stringify({
         id: WIDGET_ID,
-        theme: "taline",
+        theme: theme === "light" ? "light" : "taline",
         type: "ac",
         locale: "fa",
-        mode: "dark",
+        mode: theme,
         "color-palette": CHART_PALETTE,
         style: "tradingview",
         chart_style: "Candle",
@@ -406,7 +429,7 @@ export function BitycleChart({ interval, lastPrice }: { interval: "15" | "60" | 
           "load_last_chart",
         ],
         enabled_features: ["countdown"],
-        overrides: CHART_OVERRIDES,
+        overrides: chartOverrides(theme),
         calendar_type: "shamsi",
       });
       script.addEventListener("error", () => !disposed && setState("error"), { once: true });
@@ -421,7 +444,7 @@ export function BitycleChart({ interval, lastPrice }: { interval: "15" | "60" | 
           registrationTimer = null;
           datafeed = installExternalDatafeed(widget, resolutionSeconds, supportedResolutions, lastPriceRef.current);
           datafeedRef.current = datafeed;
-          widget.setConfig?.({ mode: "dark", "color-palette": CHART_PALETTE, chart_style: "Candle", overrides: CHART_OVERRIDES });
+          widget.setConfig?.({ mode: theme, "color-palette": CHART_PALETTE, chart_style: "Candle", overrides: chartOverrides(theme) });
           setState("ready");
         } else if (attempts >= 100) {
           if (registrationTimer) clearInterval(registrationTimer);
@@ -444,7 +467,7 @@ export function BitycleChart({ interval, lastPrice }: { interval: "15" | "60" | 
       if (window.BitycleWidget?.[WIDGET_ID]) delete window.BitycleWidget[WIDGET_ID];
       container.replaceChildren();
     };
-  }, [interval]);
+  }, [interval, theme]);
 
   return (
     <div className="bitycle-shell">

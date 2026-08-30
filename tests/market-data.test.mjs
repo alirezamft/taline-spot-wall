@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { initialSnapshot, normalizeOrderbook, normalizeStats, reduceMarketResponse } from "../app/market-data.ts";
+import { initialSnapshot, normalizeOrderbook, normalizePollInterval, normalizeStats, reduceMarketResponse } from "../app/market-data.ts";
 
 const bookPayload = {
   status: true,
@@ -70,4 +70,11 @@ test("shows session-required before any real snapshot instead of market fallback
   assert.equal(snapshot.high24h, null);
   assert.deepEqual(snapshot.bids, []);
   assert.deepEqual(snapshot.asks, []);
+});
+
+test("accepts operator-defined orderbook polling intervals within safe limits", () => {
+  assert.equal(normalizePollInterval(4_000), 4_000);
+  assert.equal(normalizePollInterval(10_000), 10_000);
+  assert.equal(normalizePollInterval(100), 1_000);
+  assert.equal(normalizePollInterval(900_000), 300_000);
 });

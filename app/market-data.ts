@@ -30,6 +30,7 @@ export interface MarketSnapshot {
 export interface MarketDataProvider {
   getSnapshot(): MarketSnapshot;
   subscribe(listener: (snapshot: MarketSnapshot) => void): () => void;
+  setPollInterval(milliseconds: number): void;
 }
 
 interface RawOrderLevel {
@@ -70,9 +71,13 @@ interface NormalizedStats {
 
 const ORDERBOOK_API = "/api/orderbook";
 const PRICE_API = "/api/market-price";
-const POLL_INTERVAL_MS = 5_000;
+export const DEFAULT_POLL_INTERVAL_MS = 5_000;
 const REQUEST_TIMEOUT_MS = 4_500;
 const PRICE_MULTIPLIER = 10_000;
+
+export function normalizePollInterval(milliseconds: number) {
+  return Math.min(300_000, Math.max(1_000, Math.round(milliseconds)));
+}
 
 function positiveNumber(value: unknown) {
   const parsed = typeof value === "string" && value.trim() !== "" ? Number(value) : value;
@@ -209,10 +214,18 @@ export class TlynMarketDataProvider implements MarketDataProvider {
   private pollTimer: ReturnType<typeof setTimeout> | null = null;
   private requestController: AbortController | null = null;
   private requestSequence = 0;
+  private pollIntervalMs = DEFAULT_POLL_INTERVAL_MS;
   private sessionListener = () => void this.refresh();
 
   getSnapshot() {
     return this.snapshot;
+  }
+
+  setPollInterval(milliseconds: number) {
+    const next = normalizePollInterval(milliseconds);
+    if (next === this.pollIntervalMs) return;
+    this.pollIntervalMs = next;
+    if (this.listeners.size > 0 && !this.requestController) this.scheduleNext();
   }
 
   subscribe(listener: (snapshot: MarketSnapshot) => void) {
@@ -246,7 +259,7 @@ export class TlynMarketDataProvider implements MarketDataProvider {
     this.pollTimer = setTimeout(() => {
       this.pollTimer = null;
       void this.refresh();
-    }, POLL_INTERVAL_MS);
+    }, this.pollIntervalMs);
   }
 
   private async refresh() {
