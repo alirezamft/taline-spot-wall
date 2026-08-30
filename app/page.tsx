@@ -217,11 +217,16 @@ function PairedOrderRows({ bids, asks, replaySequence, motionMode, motionSpeed, 
     const sellDepth = ask && askMax > 0 ? ask.amount / askMax : 0;
     const buyDepth = bid && bidMax > 0 ? bid.amount / bidMax : 0;
     const rowMotion = ask?.motion === "reprice" || bid?.motion === "reprice" ? "row-reprice" : "row-volume";
-    const animationDelay = index * (motionMode === "row-flash" ? Math.round(profile.step * 0.72) : profile.step);
+    const freezeDuration = motionMode === "freeze-replay" ? Math.round(profile.depthDuration * 0.42) : 0;
+    const rowStep = motionMode === "row-flash" ? Math.round(profile.step * 0.72) : motionMode === "freeze-replay" ? freezeDuration : profile.step;
+    const animationDelay = index * rowStep;
+    const contentDelay = animationDelay + freezeDuration;
     const depthStyle = {
       "--sell-depth": String(sellDepth),
       "--buy-depth": String(buyDepth),
       "--refresh-delay": `${animationDelay}ms`,
+      "--content-delay": `${contentDelay}ms`,
+      "--freeze-duration": `${freezeDuration}ms`,
       "--depth-duration": `${profile.depthDuration}ms`,
     } as CSSProperties;
     const revision = Math.max(ask?.revision ?? 0, bid?.revision ?? 0);
@@ -240,14 +245,14 @@ function PairedOrderRows({ bids, asks, replaySequence, motionMode, motionSpeed, 
         {...(ask ? { "data-ask-price": ask.price, "data-ask-amount": ask.amount } : {})}
       >
         {ask ? <>
-          <BookValue value={ask.amount} className="paired-amount sell-amount" format={amount} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={animationDelay} duration={profile.depthDuration} />
-          {wide && <BookValue value={ask.price * ask.amount} className="paired-total sell-total" format={toman} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={animationDelay} duration={profile.depthDuration} />}
-          <BookValue value={ask.price} className="paired-price sell-price" format={toman} motion={activeNumberMotion} direction="sell" trigger={replaySequence} delay={animationDelay} duration={profile.depthDuration} />
+          <BookValue value={ask.amount} className="paired-amount sell-amount" format={amount} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={contentDelay} duration={profile.depthDuration} />
+          {wide && <BookValue value={ask.price * ask.amount} className="paired-total sell-total" format={toman} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={contentDelay} duration={profile.depthDuration} />}
+          <BookValue value={ask.price} className="paired-price sell-price" format={toman} motion={activeNumberMotion} direction="sell" trigger={replaySequence} delay={contentDelay} duration={profile.depthDuration} />
         </> : Array.from({ length: wide ? 3 : 2 }, (_, emptyIndex) => <span key={`sell-empty-${emptyIndex}`} />)}
         {bid ? <>
-          <BookValue value={bid.price} className="paired-price buy-price" format={toman} motion={activeNumberMotion} direction="buy" trigger={replaySequence} delay={animationDelay} duration={profile.depthDuration} />
-          {wide && <BookValue value={bid.price * bid.amount} className="paired-total buy-total" format={toman} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={animationDelay} duration={profile.depthDuration} />}
-          <BookValue value={bid.amount} className="paired-amount buy-amount" format={amount} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={animationDelay} duration={profile.depthDuration} />
+          <BookValue value={bid.price} className="paired-price buy-price" format={toman} motion={activeNumberMotion} direction="buy" trigger={replaySequence} delay={contentDelay} duration={profile.depthDuration} />
+          {wide && <BookValue value={bid.price * bid.amount} className="paired-total buy-total" format={toman} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={contentDelay} duration={profile.depthDuration} />}
+          <BookValue value={bid.amount} className="paired-amount buy-amount" format={amount} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={contentDelay} duration={profile.depthDuration} />
         </> : Array.from({ length: wide ? 3 : 2 }, (_, emptyIndex) => <span key={`buy-empty-${emptyIndex}`} />)}
         {ask && <i className="paired-depth sell-depth" aria-hidden="true" />}
         {bid && <i className="paired-depth buy-depth" aria-hidden="true" />}
@@ -263,8 +268,9 @@ function OrderBook({ snapshot, motionMode, motionSpeed, numberMotion, priceFlash
   const profile = motionProfiles[motionSpeed];
   useEffect(() => {
     if (rowCount === 0) return;
-    const rowStep = motionMode === "row-flash" ? Math.round(profile.step * 0.72) : profile.step;
-    const fullCycleDuration = (rowCount - 1) * rowStep + profile.depthDuration + 450;
+    const freezeDuration = motionMode === "freeze-replay" ? Math.round(profile.depthDuration * 0.42) : 0;
+    const rowStep = motionMode === "row-flash" ? Math.round(profile.step * 0.72) : motionMode === "freeze-replay" ? freezeDuration : profile.step;
+    const fullCycleDuration = (rowCount - 1) * rowStep + freezeDuration + profile.depthDuration + 450;
     const cycleInterval = Math.max(refreshSeconds * 1_000, fullCycleDuration);
     let timer = 0;
     const playCompleteCycle = () => {

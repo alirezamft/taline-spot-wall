@@ -89,10 +89,11 @@ test("uses only real order-book and market-stat data", async () => {
   assert.match(css, /replaySellA var\(--depth-duration\)[^;]*forwards/);
   assert.match(css, /replayBuyA var\(--depth-duration\)[^;]*forwards/);
   assert.match(css, /freezeRowA/);
-  assert.match(css, /--row-freeze: rgba\(207,231,248,\.72\)/);
-  assert.match(css, /freezeRowA var\(--depth-duration\)/);
-  assert.match(css, /sellPriceRefreshA var\(--depth-duration\)/);
-  assert.match(css, /bookTypeA var\(--depth-duration\)/);
+  assert.match(css, /--row-freeze: rgba\(246,248,250,\.96\)/);
+  assert.match(css, /freezeRowA var\(--freeze-duration\)/);
+  assert.match(css, /sellPriceRefreshA 520ms ease-out var\(--content-delay\)/);
+  assert.match(css, /bookTypeA var\(--depth-duration\)[^;]*var\(--content-delay\)/);
+  assert.match(page, /contentDelay = animationDelay \+ freezeDuration/);
   assert.match(page, /شمارنده تا عدد نهایی/);
   assert.match(page, /تایپ عدد نهایی/);
   assert.match(page, /فلش قیمت/);
