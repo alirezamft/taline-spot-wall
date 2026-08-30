@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<!-- saved from url=(0021)https://wall.tlyn.ir/ -->
+<html lang="fa" dir="rtl"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><style>body {transition: opacity ease-in 0.2s; } 
+body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relative; } 
+</style>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طلاین | قیمت طلا</title>
+    <style>
+        @font-face {
+            font-family: dana;
+            font-style: normal;
+            font-weight: normal;
+            font-display: swap;
+            src: url('./fonts/Dana-Regular.woff2') format('woff2');
+        }
+
+        @font-face {
+            font-family: dana;
+            font-style: normal;
+            font-weight: 500;
+            font-display: swap;
+            src: url('./fonts/Dana-Medium.woff2') format('woff2');
+        }
+
+        @font-face {
+            font-family: dana;
+            font-style: normal;
+            font-weight: 600;
+            font-display: swap;
+            src: url('./fonts/Dana-DemiBold.woff2') format('woff2');
+        }
+
+        @font-face {
+            font-family: dana;
+            font-style: normal;
+            font-weight: bold;
+            font-display: swap;
+            src: url('./fonts/Dana-Bold.woff2') format('woff2');
+        }
+
+        :root {
+            --purple: #500878;
+            --gold: #ffc72c;
+            --card-light: #e9e6f1;
+            --ink-soft: #6b5a8c;
+            --supply: #e23b3b;
+            --demand: #2fae5f;
+            --white: #ffffff;
+            --black: #231f20;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html { font-size: calc(min(100vw, 66.66vh) * 0.024); }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: dana, 'Vazirmatn', sans-serif;
+            background: var(--white);
+            color: var(--white);
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stage {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
+            gap: 0.9rem;
+            padding: 2.4rem 4rem 1.8rem;
+        }
+
+        .logo {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.35rem;
+            flex: 0 0 auto;
+            align-self: center;
+        }
+
+        .logo svg {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .logo__subtitle {
+            font-size: 1.6rem;
+            font-weight: 400;
+            color: #000;
+            margin-top: 0.35rem;
+            margin-bottom: 0;
+        }
+
+        .card {
+            color: #231f20;
+            width: 100%;
+            flex: 0 0 auto;
+            border-radius: 1.15rem;
+            padding: 1.35rem 2rem;
+            text-align: center;
+        }
+
+        .card--buy {
+            background: var(--purple);
+            color: var(--white);
+        }
+
+        .card--sell {
+            background: var(--card-light);
+            color: var(--black);
+        }
+
+        .card__label {
+            font-size: 2rem;
+            line-height: 1.2;
+            font-weight: 400;
+            margin-bottom: 0.45rem;
+        }
+
+        .card__price {
+            font-size: 2.9rem;
+            line-height: 1.1;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            direction: ltr;
+            unicode-bidi: plaintext;
+            transition: transform 0.25s ease, color 0.25s ease;
+        }
+
+        .card__price.flash {
+            transform: scale(1.06);
+        }
+
+        /* --- odometer (rolling digits) --- */
+        .odo {
+            --odo-h: 1.2em;
+            --odo-w: 0.62em;
+            display: inline-flex;
+            align-items: stretch;
+            direction: ltr;
+            unicode-bidi: isolate;
+            line-height: 1;
+        }
+
+        .odo__sep {
+            display: block;
+            height: var(--odo-h);
+            line-height: var(--odo-h);
+        }
+
+        .odo__digit {
+            display: block;
+            width: var(--odo-w);
+            height: var(--odo-h);
+            overflow: hidden;
+        }
+
+        .odo__strip {
+            display: block;
+            will-change: transform;
+            transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .odo__cell {
+            display: block;
+            height: var(--odo-h);
+            line-height: var(--odo-h);
+            text-align: center;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .odo__strip {
+                transition: none;
+            }
+        }
+
+        .card--gauge {
+            background: var(--card-light);
+            color: var(--ink);
+            padding: 1.4rem 2rem 1.6rem;
+        }
+
+        .gauge__title {
+            font-size: 1.5rem;
+            font-weight: 400;
+            color: var(--black);
+        }
+
+        .gauge__svg {
+            width: 58%;
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .gauge__arc {
+            fill: none;
+            stroke: url(#gaugeGrad);
+            stroke-width: 26;
+            stroke-linecap: round;
+        }
+
+        .gauge__needle,
+        .gauge__hub {
+            fill: #2b2b2b;
+        }
+
+        .gauge__needle { opacity: 1; }
+
+        .gauge__hub-dot {
+            fill: #f3f1f8;
+        }
+
+        #needle {
+            opacity: 0;
+            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .gauge__row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            direction: ltr;
+            margin-top: -1rem;
+            padding: 0 2.2rem;
+        }
+
+        .gauge__supply,
+        .gauge__demand,
+        .gauge__center {
+            font-size: 1.3rem;
+            font-weight: 500;
+        }
+
+        .gauge__supply {
+            color: var(--supply);
+        }
+
+        .gauge__demand {
+            color: var(--demand);
+        }
+
+        .gauge__center {
+            margin-top: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .gauge__value {
+            font-size: 1.3rem;
+            font-weight: 500;
+            line-height: 1;
+            color: #d58a02;
+        }
+
+        .gauge__state {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #d58a02;
+        }
+
+        .gauge__desc {
+            margin-top: 0.75rem;
+            font-size: 1.25rem;
+            line-height: 1.7;
+            color: var(--black);
+            text-align: center;
+        }
+
+        .card--update {
+            background: var(--purple);
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0.7rem 2.2rem;
+            font-size: 1.75rem;
+            font-weight: 400;
+        }
+
+        .card--update .time {
+            direction: rtl;
+            unicode-bidi: plaintext;
+        }
+
+        .brand {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 2.2rem;
+            font-weight: 300;
+            color: var(--purple);
+            letter-spacing: 0.04em;
+        }
+
+        .brand__line {
+            width: 62%;
+            height: 0.1rem;
+            margin: 0.45rem 0;
+            background: var(--purple);
+            border-radius: 0.1rem;
+        }
+
+        /* Landscape / square screens (width >= height): use a horizontal layout that fills the screen */
+        @media (min-aspect-ratio: 1/1) {
+            html {
+                font-size: calc(min(100vh, 56.25vw) * 0.025);
+            }
+
+            .stage {
+                width: 100vw;
+                height: 100vh;
+                display: grid;
+                grid-template-columns: 1.05fr 1fr;
+                grid-template-rows: auto 1fr 1fr 1fr auto;
+                grid-template-areas:
+                    "logo   logo"
+                    "buy    gauge"
+                    "sell   gauge"
+                    "update gauge"
+                    "brand  brand";
+                column-gap: 4%;
+                row-gap: 1.4rem;
+                padding: 4vh 5vw;
+                align-items: stretch;
+            }
+
+            .logo {
+                grid-area: logo;
+                width: auto;
+                flex-direction: row;
+                justify-content: center;
+                gap: 1.6rem;
+            }
+
+            .logo svg {
+                width: auto;
+                height: 4.4rem;
+            }
+
+            .card--buy {
+                grid-area: buy;
+            }
+
+            .card--sell {
+                grid-area: sell;
+            }
+
+            .card--update {
+                grid-area: update;
+            }
+
+            .card--gauge {
+                grid-area: gauge;
+            }
+
+            .brand {
+                grid-area: brand;
+                flex-direction: row;
+                justify-content: center;
+            }
+
+            .brand__line {
+                display: none;
+            }
+
+            .card--buy,
+            .card--sell,
+            .card--gauge {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+
+            .gauge__svg {
+                width: 46%;
+            }
+        }
+
+        @media (min-height: 650px) and (max-aspect-ratio: 1/1) {
+            .stage { justify-content: space-between; gap: 1.2rem; padding-block: 3rem; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="stage">
+        <header class="logo">
+            <svg viewBox="0 0 960 274.46" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="طلاین">
+                <circle fill="#fff" cx="822.77" cy="137.23" r="137.23"></circle>
+                <path fill="#f7ca1b" d="M885.97,159.15c3.05-3.78,7.6-11.91,4.72-16.63-.29-.47-7.59-6-8.69-6.69-34.48-21.57-55.66,2.25-78.89,24.19-12.33,11.65-24.35,24.19-35.85,35.88-4.17,4.24-7.43,10.28-14.12,8.98-4.44-.86.22-8.66,1.83-11.01,9.78-14.23,24.29-26.58,33.55-42.64,14.92-25.85,20.92-68.38,26.29-98.27,1.14-6.34,8.99-50.4,7.11-52.28-12.02-.19-23.67,1.43-35.22,4.52-30.6,8.18-57.52,27.27-75.71,52.41-34.87,48.17-34.57,120.82,5.01,166.47,2.42,2.79,6.63,8.19,10.44,7.12,38.58-15.48,80.51-26.58,118-44.38,13.13-6.23,32.44-16.36,41.54-27.67h0Z"></path>
+                <path fill="#f7ca1b" d="M953.71,96.58c-8.83-28.95-25.2-49.73-48.53-68.08-14.11-11.1-32.66-21.22-50.77-23.5-3.03,21.31-6.93,43.45-13.29,64.02-4.82,15.6-12.6,30.99-18.58,45.47-.57,1.37-4.42,5.78-1.07,5.8,16.47-18.1,47.78-46.35,73.48-46.21,17.86.1,36.79,11.94,37.22,31.23.62,27.93-24.86,62.56-40.19,84.62-5.95,8.57-20.62,32.75-28.86,36.93-4.87,2.47-14.9,5.29-20.48,6.86-21.02,5.93-48.21,11.49-70.71,13.88-8.98.95-17.82,2.38-26.92,1.7-.28,1.25.13,1.38.9,2.09,9.03,8.25,37.94,18.56,50.17,20.75,102.52,18.33,188.23-75.19,157.62-175.56h0Z"></path>
+                <rect fill="#000" x="65.97" y="68.61" width="33.82" height="34.46"></rect>
+                <path fill="#000" d="M612.89,124.59c-2.96-6.92-7.23-13.19-12.67-18.59-5.41-5.31-11.69-9.51-18.74-12.47-7.27-3.03-14.98-4.57-22.87-4.57-8.69,0-22.94,2.67-33.79,9.75-6.27,3.64-11.6,8.33-16.62,13.21v-43.3h-33.82v103.4c-21.52-.13-38.97-17.62-38.97-39.17v-64.23h-33.82v64.23c0,12.39-6.13,22.98-15.13,30.17l-49.85-94.4h-38.21l54.62,103.44h-54.06l17.84,33.79h45.59c22.66,0,42.7-10.6,56.1-26.86,13.41,16.26,33.44,26.86,56.1,26.86h84.01c7.89,0,15.6-1.53,22.9-4.58,7.01-2.94,13.3-7.14,18.7-12.45,5.44-5.41,9.72-11.67,12.67-18.61,3.07-7.23,4.64-14.9,4.64-22.79s-1.57-15.56-4.64-22.81l.02-.02ZM581.77,156.95c-1.2,2.89-3.03,5.52-5.37,7.83-2.26,2.27-4.97,4.05-7.93,5.3-3.14,1.3-6.46,1.97-9.86,1.97h-50.11c6.62-16.2,18.34-35.42,34.08-44.58,5-3.25,12.38-4.73,16.03-4.73,3.4,0,6.72.68,9.83,1.95,3,1.26,5.7,3.05,7.96,5.31,2.34,2.32,4.16,4.95,5.37,7.82,1.28,3.03,1.94,6.25,1.94,9.57s-.66,6.54-1.94,9.55h0Z"></path>
+                <path fill="#000" d="M283.42,107.2h-97.15c-11.32,0-20.49-9.2-20.49-20.51v-18.08h-33.82v71.72c0,17.5-14.21,31.72-31.7,31.72h-34.68c-17.5,0-31.74-14.23-31.74-31.72v-37.26H0v37.26c0,36.12,29.4,65.51,65.56,65.51h34.68c36.12,0,65.53-29.39,65.53-65.51v-3.42c6.33,2.59,13.23,4.08,20.49,4.08h114.99l-17.84-33.79h.01Z"></path>
+                <polygon fill="#000" points="190.71 172.06 190.71 205.84 281.65 205.84 263.82 172.06 190.71 172.06"></polygon>
+            </svg>
+            <span class="logo__subtitle">قیمت لحظه‌ای طلا</span>
+        </header>
+
+        <section class="card card--buy">
+            <div class="card__label">قیمت خرید هر گرم:</div>
+            <div class="card__price" id="buyGram">—</div>
+        </section>
+
+        <section class="card card--sell">
+            <div class="card__label">قیمت فروش هر گرم:</div>
+            <div class="card__price" id="sellGram">—</div>
+        </section>
+
+        <section class="card card--gauge">
+            <div class="gauge__title">شاخص تمایل بازار طلا (امروز)</div>
+            <svg class="gauge__svg" viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <lineargradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stop-color="#e63946"></stop>
+                        <stop offset="27%" stop-color="#f07d3f"></stop>
+                        <stop offset="50%" stop-color="#f2c94c"></stop>
+                        <stop offset="73%" stop-color="#8cc152"></stop>
+                        <stop offset="100%" stop-color="#2fae5f"></stop>
+                    </lineargradient>
+                </defs>
+                <path class="gauge__arc" d="M 26 128 A 94 94 0 0 1 214 128"></path>
+                <g id="needle" transform="rotate(7.2 120 128)">
+                    <path class="gauge__needle" d="M 120 50 L 124.5 126 A 4.5 4.5 0 0 1 115.5 126 Z"></path>
+                </g>
+                <circle class="gauge__hub" cx="120" cy="128" r="11"></circle>
+                <circle class="gauge__hub-dot" cx="120" cy="128" r="4.5"></circle>
+            </svg>
+            <div class="gauge__row">
+                <span class="gauge__supply">عرضه</span>
+                <div class="gauge__center">
+                    <div class="gauge__value" id="sentimentValue">—</div>
+                    <div class="gauge__state" id="sentimentState">در حال دریافت</div>
+                </div>
+                <span class="gauge__demand">تقاضا</span>
+            </div>
+            <div class="gauge__desc">به‌کمک شاخص تمایل می‌توانید وضعیت احساسی بازار طلا را درک کنید. هر چه عدد بزرگ‌تر
+                باشد بازار تمایل بیشتری به خرید دارد.</div>
+        </section>
+
+        <section class="card card--update">
+            <span>آخرین آپدیت :</span>
+            <span class="time" id="update">—</span>
+        </section>
+
+        <footer class="brand">
+            <span class="brand__line"></span>
+            <span>Taline.ir</span>
+        </footer>
+    </div>
+
+    <script>
+        const API_URL = '/api/market-price';
+
+        const PERSIAN_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+
+        function toPersianDigits(value) {
+            return value
+                .toString()
+                .replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+                .replace(/\d/g, (d) => PERSIAN_DIGITS[d]);
+        }
+
+        /* ---- odometer: only the digits that changed roll vertically ---- */
+        const ODO_BASE_MS = 420;    // duration of a single-step roll
+        const ODO_STEP_MS = 45;     // extra duration per additional digit passed through
+        const ODO_STAGGER_MS = 35;  // each digit starts slightly after the one on its right
+
+        let odoDigitWidthEm = null;
+
+        function groupThousands(value) {
+            return Math.round(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+
+        function measureDigitWidth(sample) {
+            const probe = document.createElement('span');
+            probe.className = 'odo__cell';
+            probe.style.position = 'absolute';
+            probe.style.visibility = 'hidden';
+            sample.appendChild(probe);
+            let max = 0;
+            for (const d of PERSIAN_DIGITS) {
+                probe.textContent = d;
+                max = Math.max(max, probe.getBoundingClientRect().width);
+            }
+            const fontSize = parseFloat(getComputedStyle(sample).fontSize);
+            probe.remove();
+            return max > 0 && fontSize > 0 ? max / fontSize : 0.62;
+        }
+
+        function applyDigitWidth(root) {
+            if (odoDigitWidthEm === null) odoDigitWidthEm = measureDigitWidth(root);
+            root.style.setProperty('--odo-w', odoDigitWidthEm.toFixed(4) + 'em');
+        }
+
+        function createDigitCell() {
+            const cell = document.createElement('span');
+            cell.className = 'odo__digit';
+            const strip = document.createElement('span');
+            strip.className = 'odo__strip';
+            cell.appendChild(strip);
+            cell.strip = strip;
+            cell.digit = null;
+            return cell;
+        }
+
+        // Rebuilds the strip as the exact run of digits between the old and the new
+        // value (e.g. 8 -> 2 upwards becomes 8,9,0,1,2) and slides it to the last one.
+        function setDigit(cell, digit, direction, animate, order) {
+            if (cell.digit === digit) return;
+
+            const seq = [];
+            if (!animate || cell.digit === null) {
+                seq.push(digit);
+            } else {
+                let d = cell.digit;
+                seq.push(d);
+                while (d !== digit) {
+                    d = direction < 0 ? (d + 9) % 10 : (d + 1) % 10;
+                    seq.push(d);
+                }
+            }
+
+            const strip = cell.strip;
+            strip.textContent = '';
+            for (const d of seq) {
+                const c = document.createElement('span');
+                c.className = 'odo__cell';
+                c.textContent = PERSIAN_DIGITS[d];
+                strip.appendChild(c);
+            }
+
+            const steps = seq.length - 1;
+            strip.style.transition = 'none';
+            strip.style.transform = 'translateY(0)';
+            void strip.offsetHeight; // flush, so the roll starts on the previous digit
+            strip.style.transition = '';
+            strip.style.transitionDuration = (ODO_BASE_MS + Math.max(0, steps - 1) * ODO_STEP_MS) + 'ms';
+            strip.style.transitionDelay = (order * ODO_STAGGER_MS) + 'ms';
+            strip.style.transform = 'translateY(' + (-steps * 100 / seq.length) + '%)';
+
+            cell.digit = digit;
+        }
+
+        function setOdometer(el, value) {
+            const text = groupThousands(value);
+            const direction = el.odoValue == null || value >= el.odoValue ? 1 : -1;
+            const sameShape = el.odoText != null && el.odoText.length === text.length;
+
+            if (!sameShape) {
+                const root = document.createElement('span');
+                root.className = 'odo';
+                el.cells = [];
+                for (const ch of text) {
+                    if (ch >= '0' && ch <= '9') {
+                        const cell = createDigitCell();
+                        setDigit(cell, +ch, 1, false, 0);
+                        root.appendChild(cell);
+                        el.cells.push(cell);
+                    } else {
+                        const sep = document.createElement('span');
+                        sep.className = 'odo__sep';
+                        sep.textContent = ch;
+                        root.appendChild(sep);
+                    }
+                }
+                el.textContent = '';
+                el.appendChild(root);
+                applyDigitWidth(root);
+            } else {
+                const digits = text.replace(/\D/g, '');
+                for (let i = digits.length - 1; i >= 0; i--) {
+                    setDigit(el.cells[i], +digits[i], direction, true, digits.length - 1 - i);
+                }
+            }
+
+            el.odoText = text;
+            el.odoValue = value;
+        }
+
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(() => {
+                odoDigitWidthEm = null;
+                document.querySelectorAll('.odo').forEach(applyDigitWidth);
+            });
+        }
+
+        function sentimentState(value) {
+            if (value < 35) return 'عرضه شدید';
+            if (value <= 65) return 'متعادل';
+            return 'تقاضای شدید';
+        }
+
+        function flash(el) {
+            el.classList.add('flash');
+            setTimeout(() => el.classList.remove('flash'), 350);
+        }
+
+        const state = { lastBuy: null, updatedAt: null };
+
+        // When the price itself was last updated, taken from the API response.
+        // The age is measured against the server's own clock (the response `Date` header),
+        // so a skewed clock on the display machine can't distort the label.
+        function parseUpdatedAt(gold, serverNow) {
+            const d = (gold && gold.date) || {};
+            const t = Date.parse(d.utc_timestamp || d.datetime_full || '');
+            if (!isFinite(t)) return null;
+            return Date.now() - Math.max(0, serverNow - t);
+        }
+
+        function relativeTime(since) {
+            const secs = Math.max(0, Math.floor((Date.now() - since) / 1000));
+            if (secs < 60) return toPersianDigits(secs + 1) + ' ثانیه قبل';
+            const mins = Math.floor(secs / 60);
+            if (mins < 60) return toPersianDigits(mins) + ' دقیقه قبل';
+            const hours = Math.floor(mins / 60);
+            if (hours < 24) return toPersianDigits(hours) + ' ساعت قبل';
+            return toPersianDigits(Math.floor(hours / 24)) + ' روز قبل';
+        }
+
+        function renderUpdatedAt() {
+            if (state.updatedAt === null) return;
+            const el = document.getElementById('update');
+            const text = relativeTime(state.updatedAt);
+            if (el.textContent !== text) el.textContent = text;
+        }
+
+        function render(gold) {
+            const buyEl = document.getElementById('buyGram');
+            const sellEl = document.getElementById('sellGram');
+
+            setOdometer(buyEl, gold.price.sell * 1000);
+            setOdometer(sellEl, gold.price.buy * 1000);
+            flash(buyEl);
+            flash(sellEl);
+        }
+
+        async function getData() {
+            try {
+                const res = await fetch(API_URL);
+                const serverNow = Date.parse(res.headers.get('date') || '') || Date.now();
+                const data = await res.json();
+                const gold = data.prices.find((p) => p.symbol === 'GOLD18');
+                if (!gold) return;
+
+                const updatedAt = parseUpdatedAt(gold, serverNow);
+                if (updatedAt !== null) {
+                    state.updatedAt = updatedAt;
+                    renderUpdatedAt();
+                }
+
+                if (state.lastBuy === gold.price.buy) return;
+                state.lastBuy = gold.price.buy;
+                render(gold);
+            } catch (e) {
+                // keep last shown values on network errors
+            }
+        }
+
+        getData();
+        setInterval(getData, 5000);
+
+        // Re-check the elapsed label every 5s; it only rewrites the element when the
+        // rendered text actually differs (e.g. ۵۰ ثانیه قبل -> ۱ دقیقه قبل).
+        setInterval(renderUpdatedAt, 1000);
+
+        // Full page refresh every 5 minutes, so a long-running wall display stays healthy.
+        setTimeout(() => location.reload(), 5 * 60 * 1000);
+
+        const SENTIMENT_URL = '/api/market-sentiment';
+        const sentiment = { lastGet: null };
+
+        function applySentiment(getPct) {
+            const v = Math.max(0, Math.min(100, getPct));
+            document.getElementById('sentimentValue').textContent = toPersianDigits(v);
+            document.getElementById('sentimentState').textContent = sentimentState(v);
+            const angle = (v - 50) * 1.8;
+            const needle = document.getElementById('needle');
+            needle.style.opacity = '1';
+            needle.setAttribute('transform', `rotate(${angle} 120 128)`);
+        }
+
+        async function getSentiment() {
+            try {
+                const res = await fetch(SENTIMENT_URL);
+                const json = await res.json();
+                const raw = json && json.data && json.data.get;
+                const v = parseInt(raw, 10);
+                if (isNaN(v)) return; // no valid data -> keep previous value
+                sentiment.lastGet = v;
+                applySentiment(v);
+            } catch (e) {
+                // request failed -> keep showing the previous value
+            }
+        }
+
+        getSentiment();
+        setInterval(getSentiment, 5000);
+    </script>
+
+
+</body></html>
