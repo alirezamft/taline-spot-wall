@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { BitycleChart, type ChartTheme } from "./bitycle-chart";
 import { TlynMarketDataProvider, type MarketHealth, type MarketSnapshot, type OrderLevel } from "./market-data";
+import { getOrderBookDepthWidth } from "./orderbook-depth";
 
 type ChartTimeframe = "4h" | "1d";
 type SessionDialogState = "idle" | "testing" | "verified" | "saving" | "saved" | "error";
@@ -206,16 +207,19 @@ function BookValue({ value, className, format, motion, direction, trigger, delay
 }
 
 function PairedOrderRows({ bids, asks, replaySequence, motionMode, motionSpeed, numberMotion, priceFlash, wide }: { bids: OrderLevel[]; asks: OrderLevel[]; replaySequence: number; motionMode: OrderbookMotionMode; motionSpeed: OrderbookMotionSpeed; numberMotion: NumberMotionMode; priceFlash: boolean; wide: boolean }) {
-  const bidMax = bids.length ? Math.max(...bids.map((row) => row.amount)) : 0;
-  const askMax = asks.length ? Math.max(...asks.map((row) => row.amount)) : 0;
+  const maxVisibleVolume = Math.max(
+    0,
+    ...bids.map((row) => row.amount),
+    ...asks.map((row) => row.amount),
+  );
   const rowCount = Math.max(bids.length, asks.length);
   const profile = motionProfiles[motionSpeed];
 
   return Array.from({ length: rowCount }, (_, index) => {
     const ask = asks[index];
     const bid = bids[index];
-    const sellDepth = ask && askMax > 0 ? ask.amount / askMax : 0;
-    const buyDepth = bid && bidMax > 0 ? bid.amount / bidMax : 0;
+    const sellDepth = getOrderBookDepthWidth(ask?.amount, maxVisibleVolume) / 100;
+    const buyDepth = getOrderBookDepthWidth(bid?.amount, maxVisibleVolume) / 100;
     const rowMotion = ask?.motion === "reprice" || bid?.motion === "reprice" ? "row-reprice" : "row-volume";
     const freezeDuration = motionMode === "freeze-replay" ? Math.round(profile.depthDuration * 0.42) : 0;
     const rowStep = motionMode === "row-flash" ? Math.round(profile.step * 0.72) : motionMode === "freeze-replay" ? freezeDuration : profile.step;
@@ -249,7 +253,6 @@ function PairedOrderRows({ bids, asks, replaySequence, motionMode, motionSpeed, 
           {wide && <BookValue value={ask.price * ask.amount} className="paired-total sell-total" format={toman} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={contentDelay} duration={profile.depthDuration} />}
           <BookValue value={ask.price} className="paired-price sell-price" format={toman} motion={activeNumberMotion} direction="sell" trigger={replaySequence} delay={contentDelay} duration={profile.depthDuration} />
         </> : Array.from({ length: wide ? 3 : 2 }, (_, emptyIndex) => <span key={`sell-empty-${emptyIndex}`} />)}
-        <span className="price-column-gap" aria-hidden="true" />
         {bid ? <>
           <BookValue value={bid.price} className="paired-price buy-price" format={toman} motion={activeNumberMotion} direction="buy" trigger={replaySequence} delay={contentDelay} duration={profile.depthDuration} />
           {wide && <BookValue value={bid.price * bid.amount} className="paired-total buy-total" format={toman} motion={activeNumberMotion} direction="amount" trigger={replaySequence} delay={contentDelay} duration={profile.depthDuration} />}
@@ -301,7 +304,7 @@ function OrderBook({ snapshot, motionMode, motionSpeed, numberMotion, priceFlash
         <div className={`book-last ${snapshot.lastMove}`}><span>آخرین معامله</span><strong>{toman(snapshot.lastPrice)}</strong></div>
       </div>
       <div className="book-head paired-head">
-        <span>مقدار فروش</span>{wide && <span>کل فروش</span>}<span className="sell-price">قیمت فروش</span><span className="price-column-gap" aria-hidden="true" /><span className="buy-price">قیمت خرید</span>{wide && <span>کل خرید</span>}<span>مقدار خرید</span>
+        <span>مقدار فروش</span>{wide && <span>کل فروش</span>}<span className="sell-price">قیمت فروش</span><span className="buy-price">قیمت خرید</span>{wide && <span>کل خرید</span>}<span>مقدار خرید</span>
       </div>
       {snapshot.bids.length === 0 && snapshot.asks.length === 0
         ? <div className="book-empty">{snapshot.health === "session-required" ? "برای دریافت بازار، اتصال را از لوگوی طلاین تنظیم کنید" : "در حال دریافت دفتر سفارش‌ها…"}</div>

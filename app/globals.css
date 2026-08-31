@@ -338,7 +338,7 @@ button { font: inherit; }
 }
 .paired-head {
   height: 31px;
-  grid-template-columns: .92fr 1.08fr 6px 1.08fr .92fr;
+  grid-template-columns: .92fr 1.08fr 1.08fr .92fr;
   direction: ltr;
   color: var(--muted);
   font-size: 10px;
@@ -346,7 +346,7 @@ button { font: inherit; }
   border-bottom: 1px solid var(--line-soft);
 }
 .orderbook-card.wide .paired-head,
-.orderbook-card.wide .book-paired-row { grid-template-columns: .82fr 1.22fr 1.18fr 6px 1.18fr 1.22fr .82fr; }
+.orderbook-card.wide .book-paired-row { grid-template-columns: .82fr 1.22fr 1.18fr 1.18fr 1.22fr .82fr; }
 .orderbook-card.wide .paired-head { font-size: 10px; }
 .orderbook-card.wide .book-paired-row { font-size: 11.5px; }
 .orderbook-card.wide .book-paired-row .paired-price { font-size: 14px; }
@@ -364,7 +364,7 @@ button { font: inherit; }
   isolation: isolate;
   min-height: 0;
   display: grid;
-  grid-template-columns: .92fr 1.08fr 6px 1.08fr .92fr;
+  grid-template-columns: .92fr 1.08fr 1.08fr .92fr;
   align-items: center;
   padding: 0 9px;
   direction: ltr;
@@ -380,8 +380,10 @@ button { font: inherit; }
   white-space: nowrap;
   text-align: center;
 }
-.price-column-gap { align-self: stretch; z-index: 2 !important; background: var(--order-bg); }
-.paired-head .price-column-gap { background: var(--toolbar-bg); }
+.book-paired-row .sell-price,
+.paired-head .sell-price { padding-right: 3px; }
+.book-paired-row .buy-price,
+.paired-head .buy-price { padding-left: 3px; }
 .book-paired-row .paired-price { font-size: 14.6px; font-weight: 750; }
 .book-paired-row .sell-price { color: var(--red); }
 .book-paired-row .buy-price { color: var(--green); }
@@ -395,7 +397,7 @@ button { font: inherit; }
   height: 100%;
   pointer-events: none;
   will-change: transform;
-  transition: transform 880ms cubic-bezier(.2,.72,.22,1), opacity 300ms ease;
+  transition: transform 130ms ease-out;
 }
 .book-paired-row .row-refresh {
   position: absolute;
@@ -474,10 +476,10 @@ button { font: inherit; }
   0%, 82% { opacity: 1; background: var(--row-freeze); }
   100% { opacity: 0; }
 }
-@keyframes replaySellA { 0% { transform: scaleX(0); opacity: .2; } 100% { transform: scaleX(var(--sell-depth)); opacity: 1; } }
-@keyframes replaySellB { 0% { transform: scaleX(0); opacity: .2; } 100% { transform: scaleX(var(--sell-depth)); opacity: 1; } }
-@keyframes replayBuyA { 0% { transform: scaleX(0); opacity: .2; } 100% { transform: scaleX(var(--buy-depth)); opacity: 1; } }
-@keyframes replayBuyB { 0% { transform: scaleX(0); opacity: .2; } 100% { transform: scaleX(var(--buy-depth)); opacity: 1; } }
+@keyframes replaySellA { 0% { transform: scaleX(0); } 100% { transform: scaleX(var(--sell-depth)); } }
+@keyframes replaySellB { 0% { transform: scaleX(0); } 100% { transform: scaleX(var(--sell-depth)); } }
+@keyframes replayBuyA { 0% { transform: scaleX(0); } 100% { transform: scaleX(var(--buy-depth)); } }
+@keyframes replayBuyB { 0% { transform: scaleX(0); } 100% { transform: scaleX(var(--buy-depth)); } }
 @keyframes sellPriceRefreshA { 0%, 100% { color: var(--red); text-shadow: none; transform: none; } 36% { color: var(--sell-flash); text-shadow: 0 0 6px var(--flash-halo); transform: scale(1.035); } }
 @keyframes sellPriceRefreshB { 0%, 100% { color: var(--red); text-shadow: none; transform: none; } 36% { color: var(--sell-flash); text-shadow: 0 0 6px var(--flash-halo); transform: scale(1.035); } }
 @keyframes buyPriceRefreshA { 0%, 100% { color: var(--green); text-shadow: none; transform: none; } 36% { color: var(--buy-flash); text-shadow: 0 0 6px var(--flash-halo); transform: scale(1.035); } }

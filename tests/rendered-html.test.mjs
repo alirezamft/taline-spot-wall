@@ -34,7 +34,7 @@ test("keeps the existing Persian videowall and operator session control", async 
   assert.match(page, /تعادل حجم سفارش‌ها/);
   assert.match(page, /className="header-value/);
   assert.match(page, /<small>تومان<\/small>/);
-  assert.match(page, /price-column-gap/);
+  assert.doesNotMatch(page, /price-column-gap/);
   assert.match(page, /انتخاب بازه کندل/);
   assert.match(page, /identity-trigger/);
   assert.match(page, /\/api\/market-session/);
@@ -89,8 +89,10 @@ test("uses only real order-book and market-stat data", async () => {
   assert.match(orderbookRoute, /getMarketCookie/);
   assert.match(priceRoute, /https:\/\/price\.tlyn\.ir\/api\/v1\/price/);
   assert.match(page, /rowCount = Math\.max\(bids\.length, asks\.length\)/);
-  assert.match(page, /ask\.amount \/ askMax/);
-  assert.match(page, /bid\.amount \/ bidMax/);
+  assert.match(page, /maxVisibleVolume = Math\.max/);
+  assert.match(page, /getOrderBookDepthWidth\(ask\?\.amount, maxVisibleVolume\)/);
+  assert.match(page, /getOrderBookDepthWidth\(bid\?\.amount, maxVisibleVolume\)/);
+  assert.doesNotMatch(page, /askMax|bidMax/);
   assert.match(page, /key=\{`\$\{ask\?\.price/);
   assert.match(page, /normal: \{ step: 300, depthDuration: 840 \}/);
   assert.match(page, /"freeze-replay"/);
@@ -98,7 +100,7 @@ test("uses only real order-book and market-stat data", async () => {
   assert.match(page, /Math\.max\(refreshSeconds \* 1_000, fullCycleDuration\)/);
   assert.match(page, /duration=\{profile\.depthDuration\}/);
   assert.match(css, /rowRefreshEven 620ms ease-out var\(--refresh-delay\)/);
-  assert.match(css, /transition: transform 880ms/);
+  assert.match(css, /transition: transform 130ms ease-out/);
   assert.match(css, /replaySellA var\(--depth-duration\)[^;]*forwards/);
   assert.match(css, /replayBuyA var\(--depth-duration\)[^;]*forwards/);
   assert.match(css, /freezeRowA/);
@@ -121,7 +123,8 @@ test("uses only real order-book and market-stat data", async () => {
   assert.match(css, /scaleX\(var\(--sell-depth\)\)/);
   assert.match(css, /scaleX\(var\(--buy-depth\)\)/);
   assert.match(css, /grid-template-rows: repeat\(var\(--book-row-count, 15\), minmax\(0, 1fr\)\)/);
-  assert.match(css, /grid-template-columns: \.92fr 1\.08fr 6px 1\.08fr \.92fr/);
+  assert.match(css, /grid-template-columns: \.92fr 1\.08fr 1\.08fr \.92fr/);
+  assert.doesNotMatch(css, /price-column-gap/);
   assert.match(page, /--book-row-count/);
   assert.doesNotMatch(css, /numberShockUp|numberShockDown/);
 });
