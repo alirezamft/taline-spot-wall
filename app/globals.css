@@ -88,7 +88,7 @@
   --control-bg: #f3f5f7;
   --control-border: #d2d8df;
   --dialog-bg: #fff;
-  --row-refresh: rgba(25,35,46,.16);
+  --row-refresh: #eeeeee;
   --row-freeze: rgba(246,248,250,.96);
   --sell-depth-start: rgba(224,54,82,.06);
   --sell-depth-end: rgba(224,54,82,.15);

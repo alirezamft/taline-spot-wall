@@ -15,14 +15,14 @@ const faInteger = new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 0 });
 const faAmount = new Intl.NumberFormat("fa-IR", { minimumFractionDigits: 2, maximumFractionDigits: 3 });
 const timeframeLabels: Record<ChartTimeframe, string> = { "4h": "۴ ساعت", "1d": "۱ روز" };
 const bitycleIntervals: Record<ChartTimeframe, "240" | "D"> = { "4h": "240", "1d": "D" };
-const MOTION_STORAGE_KEY = "tlyn-orderbook-motion";
+const MOTION_STORAGE_KEY = "tlyn-orderbook-motion-v2";
 const MOTION_SPEED_STORAGE_KEY = "tlyn-orderbook-motion-speed";
 const NUMBER_MOTION_STORAGE_KEY = "tlyn-orderbook-number-motion";
 const LEGACY_COUNTER_STORAGE_KEY = "tlyn-orderbook-price-counter";
-const PRICE_FLASH_STORAGE_KEY = "tlyn-orderbook-price-flash";
+const PRICE_FLASH_STORAGE_KEY = "tlyn-orderbook-price-flash-v2";
 const REFRESH_SECONDS_STORAGE_KEY = "tlyn-orderbook-refresh-seconds";
 const CHART_VISIBILITY_STORAGE_KEY = "tlyn-chart-visible";
-const THEME_STORAGE_KEY = "tlyn-spot-theme";
+const THEME_STORAGE_KEY = "tlyn-spot-theme-v2";
 const DISPLAY_HEIGHT_STORAGE_KEY = "tlyn-display-height-percent";
 const MOTION_EVENT = "tlyn-orderbook-motion-changed";
 const STAGE_WIDTH = 1_344;
@@ -55,7 +55,7 @@ function readNumberMotion(): NumberMotionMode {
 }
 
 function readPriceFlash() {
-  return window.localStorage.getItem(PRICE_FLASH_STORAGE_KEY) !== "false";
+  return window.localStorage.getItem(PRICE_FLASH_STORAGE_KEY) === "true";
 }
 
 function readRefreshSeconds() {
@@ -68,7 +68,7 @@ function readChartVisible() {
 }
 
 function readSpotTheme(): ChartTheme {
-  return window.localStorage.getItem(THEME_STORAGE_KEY) === "light" ? "light" : "dark";
+  return window.localStorage.getItem(THEME_STORAGE_KEY) === "dark" ? "dark" : "light";
 }
 
 function readDisplayHeight() {
@@ -98,7 +98,7 @@ function useNumberMotion() {
 }
 
 function usePriceFlash() {
-  return useSyncExternalStore(subscribeMotionMode, readPriceFlash, () => true);
+  return useSyncExternalStore(subscribeMotionMode, readPriceFlash, () => false);
 }
 
 function useRefreshSeconds() {
@@ -110,7 +110,7 @@ function useChartVisible() {
 }
 
 function useSpotTheme() {
-  return useSyncExternalStore<ChartTheme>(subscribeMotionMode, readSpotTheme, () => "dark");
+  return useSyncExternalStore<ChartTheme>(subscribeMotionMode, readSpotTheme, () => "light");
 }
 
 function useDisplayHeight() {
@@ -589,8 +589,31 @@ export default function Home() {
   const displayHeight = useDisplayHeight();
   const { scale, logicalHeight, viewportHeight } = useStageScale(displayHeight);
   useEffect(() => {
-    const timer = window.setTimeout(() => window.location.reload(), PAGE_RELOAD_INTERVAL_MS);
-    return () => window.clearTimeout(timer);
+    let disposed = false;
+    let timer = 0;
+    const scheduleConnectivityCheck = () => {
+      timer = window.setTimeout(async () => {
+        let canReload = false;
+        try {
+          const response = await fetch("/api/connectivity-check", { cache: "no-store", signal: AbortSignal.timeout(8_000) });
+          const payload = await response.json() as { online?: boolean };
+          canReload = response.ok && payload.online === true;
+        } catch {
+          canReload = false;
+        }
+        if (disposed) return;
+        if (canReload) {
+          window.location.reload();
+          return;
+        }
+        scheduleConnectivityCheck();
+      }, PAGE_RELOAD_INTERVAL_MS);
+    };
+    scheduleConnectivityCheck();
+    return () => {
+      disposed = true;
+      window.clearTimeout(timer);
+    };
   }, []);
   const marketHeaderHeight = Math.min(156, Math.max(132, logicalHeight * 0.22));
   const scalerStyle = { transform: `scale(${scale})`, "--stage-height": `${logicalHeight}px`, "--market-header-height": `${marketHeaderHeight}px` } as CSSProperties;

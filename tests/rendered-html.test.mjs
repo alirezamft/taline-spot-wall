@@ -5,11 +5,12 @@ import test from "node:test";
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
 test("keeps the existing Persian videowall and operator session control", async () => {
-  const [page, css, sessionRoute, sessionStore, layout] = await Promise.all([
+  const [page, css, sessionRoute, sessionStore, connectivityRoute, layout] = await Promise.all([
     read("app/page.tsx"),
     read("app/globals.css"),
     read("app/api/market-session/route.ts"),
     read("app/market-session.ts"),
+    read("app/api/connectivity-check/route.ts"),
     read("app/layout.tsx"),
   ]);
 
@@ -18,7 +19,12 @@ test("keeps the existing Persian videowall and operator session control", async 
   assert.match(page, /requestedHeight = window\.innerHeight \* \(heightPercent \/ 100\)/);
   assert.match(page, /Math\.min\(MAX_RESPONSIVE_STAGE_HEIGHT, requestedHeight \/ scale\)/);
   assert.match(page, /PAGE_RELOAD_INTERVAL_MS = 10 \* 60 \* 1_000/);
+  assert.match(page, /fetch\("\/api\/connectivity-check"/);
+  assert.match(page, /payload\.online === true/);
   assert.match(page, /window\.location\.reload\(\)/);
+  assert.match(connectivityRoute, /https:\/\/www\.digikala\.com\//);
+  assert.match(connectivityRoute, /method: "HEAD"/);
+  assert.match(connectivityRoute, /online: false/);
   assert.match(page, /طلاین/);
   assert.match(page, /دفتر سفارش‌ها/);
   assert.doesNotMatch(page, />عمق بازار</);
@@ -41,6 +47,10 @@ test("keeps the existing Persian videowall and operator session control", async 
   assert.match(css, /\.market-stage\s*\{[^}]*width: 960px;[^}]*height: var\(--stage-height, 576px\)/s);
   assert.match(css, /\.wall-layout\s*\{[^}]*width: 1344px;[^}]*height: var\(--stage-height, 576px\)/s);
   assert.match(css, /Dana-Regular\.woff2/);
+  assert.match(css, /--row-refresh: #eeeeee/);
+  assert.match(page, /tlyn-orderbook-motion-v2/);
+  assert.match(page, /tlyn-orderbook-price-flash-v2/);
+  assert.match(page, /tlyn-spot-theme-v2/);
   assert.doesNotMatch(`${page}\n${sessionRoute}\n${sessionStore}`, /analytics_token=|XSRF-TOKEN=|apptlynir_session=ey/);
 });
 
