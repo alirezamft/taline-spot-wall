@@ -207,19 +207,16 @@ function BookValue({ value, className, format, motion, direction, trigger, delay
 }
 
 function PairedOrderRows({ bids, asks, replaySequence, motionMode, motionSpeed, numberMotion, priceFlash, wide }: { bids: OrderLevel[]; asks: OrderLevel[]; replaySequence: number; motionMode: OrderbookMotionMode; motionSpeed: OrderbookMotionSpeed; numberMotion: NumberMotionMode; priceFlash: boolean; wide: boolean }) {
-  const maxVisibleVolume = Math.max(
-    0,
-    ...bids.map((row) => row.amount),
-    ...asks.map((row) => row.amount),
-  );
+  const maxVisibleBidVolume = Math.max(0, ...bids.map((row) => row.amount));
+  const maxVisibleAskVolume = Math.max(0, ...asks.map((row) => row.amount));
   const rowCount = Math.max(bids.length, asks.length);
   const profile = motionProfiles[motionSpeed];
 
   return Array.from({ length: rowCount }, (_, index) => {
     const ask = asks[index];
     const bid = bids[index];
-    const sellDepth = getOrderBookDepthWidth(ask?.amount, maxVisibleVolume) / 100;
-    const buyDepth = getOrderBookDepthWidth(bid?.amount, maxVisibleVolume) / 100;
+    const sellDepth = getOrderBookDepthWidth(ask?.amount, maxVisibleAskVolume) / 100;
+    const buyDepth = getOrderBookDepthWidth(bid?.amount, maxVisibleBidVolume) / 100;
     const rowMotion = ask?.motion === "reprice" || bid?.motion === "reprice" ? "row-reprice" : "row-volume";
     const freezeDuration = motionMode === "freeze-replay" ? Math.round(profile.depthDuration * 0.42) : 0;
     const rowStep = motionMode === "row-flash" ? Math.round(profile.step * 0.72) : motionMode === "freeze-replay" ? freezeDuration : profile.step;

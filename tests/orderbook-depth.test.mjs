@@ -15,15 +15,16 @@ test("keeps every positive real order visible while preserving depth hierarchy",
   widths.slice(1).forEach((width, index) => assert.ok(widths[index] > width));
 });
 
-test("normalizes both sides against one shared visible maximum", () => {
-  const sharedMaximum = Math.max(...[30, 4, 0.2], ...[10, 1, 0.01]);
+test("normalizes the visible bid and ask sides independently", () => {
+  const visibleAsks = [30, 4, 0.2];
+  const visibleBids = [10, 1, 0.01];
+  const maxVisibleAskVolume = Math.max(...visibleAsks);
+  const maxVisibleBidVolume = Math.max(...visibleBids);
 
-  assert.equal(getOrderBookDepthWidth(30, sharedMaximum), 100);
-  assert.ok(getOrderBookDepthWidth(10, sharedMaximum) < 100);
-  assert.equal(
-    getOrderBookDepthWidth(4, sharedMaximum),
-    getOrderBookDepthWidth(4, sharedMaximum),
-  );
+  assert.equal(getOrderBookDepthWidth(30, maxVisibleAskVolume), 100);
+  assert.equal(getOrderBookDepthWidth(10, maxVisibleBidVolume), 100);
+  assert.ok(getOrderBookDepthWidth(4, maxVisibleAskVolume) < 100);
+  assert.ok(getOrderBookDepthWidth(1, maxVisibleBidVolume) < 100);
 });
 
 test("returns zero for invalid depth inputs and caps values at 100 percent", () => {

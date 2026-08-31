@@ -89,10 +89,10 @@ test("uses only real order-book and market-stat data", async () => {
   assert.match(orderbookRoute, /getMarketCookie/);
   assert.match(priceRoute, /https:\/\/price\.tlyn\.ir\/api\/v1\/price/);
   assert.match(page, /rowCount = Math\.max\(bids\.length, asks\.length\)/);
-  assert.match(page, /maxVisibleVolume = Math\.max/);
-  assert.match(page, /getOrderBookDepthWidth\(ask\?\.amount, maxVisibleVolume\)/);
-  assert.match(page, /getOrderBookDepthWidth\(bid\?\.amount, maxVisibleVolume\)/);
-  assert.doesNotMatch(page, /askMax|bidMax/);
+  assert.match(page, /maxVisibleBidVolume = Math\.max/);
+  assert.match(page, /maxVisibleAskVolume = Math\.max/);
+  assert.match(page, /getOrderBookDepthWidth\(ask\?\.amount, maxVisibleAskVolume\)/);
+  assert.match(page, /getOrderBookDepthWidth\(bid\?\.amount, maxVisibleBidVolume\)/);
   assert.match(page, /key=\{`\$\{ask\?\.price/);
   assert.match(page, /normal: \{ step: 300, depthDuration: 840 \}/);
   assert.match(page, /"freeze-replay"/);
